@@ -2,6 +2,8 @@ import 'model_helpers.dart';
 
 class HelperProfile {
   const HelperProfile({
+    this.id = '',
+    this.userId = '',
     required this.name,
     required this.photoUrl,
     required this.organization,
@@ -14,6 +16,8 @@ class HelperProfile {
     required this.isFreeAvailable,
   });
 
+  final String id;
+  final String userId;
   final String name;
   final String photoUrl;
   final String organization;
@@ -30,6 +34,8 @@ class HelperProfile {
     final currency = readString(map, 'currency', fallback: 'GHS');
 
     return HelperProfile(
+      id: readString(map, 'id'),
+      userId: readString(map, 'user_id'),
       name: readString(
         map,
         'display_name',

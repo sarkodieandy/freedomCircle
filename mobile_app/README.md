@@ -17,6 +17,10 @@ Do not put the service role key, database URL, Supabase access token, or payment
 provider secrets in Flutter. Those belong only in Laravel/backend runtime
 configuration.
 
+Push notification provider secrets also stay out of Flutter. The mobile app can
+register a device token in `user_push_tokens`, but FCM/APNs delivery runs through
+Supabase Edge Functions or Laravel server code.
+
 ## Data Layer
 
 - `lib/data/supabase`: Supabase config and initialization.
@@ -29,3 +33,7 @@ configuration.
 
 Use `community_feed_posts` for community reads so anonymous posts do not expose
 author identity to normal client queries.
+
+Notifications use `NotificationRepository.listenToNotifications()` and
+`listenToUnreadCount()` for Supabase Realtime updates scoped to the signed-in
+user.

@@ -15,41 +15,49 @@ class MockDataService {
       title: 'Prayer discipline',
       icon: Icons.volunteer_activism_rounded,
       color: AppColors.gold,
+      iconUrl: 'https://img.icons8.com/color/96/praying-hands.png',
     ),
     FocusOption(
       title: 'Fasting discipline',
       icon: Icons.local_fire_department_rounded,
       color: AppColors.support,
+      iconUrl: 'https://img.icons8.com/color/96/fire-element.png',
     ),
     FocusOption(
       title: 'Bible study consistency',
       icon: Icons.auto_stories_rounded,
       color: AppColors.green,
+      iconUrl: 'https://img.icons8.com/color/96/open-book--v1.png',
     ),
     FocusOption(
       title: 'Screen discipline',
       icon: Icons.phonelink_lock_rounded,
       color: AppColors.navy,
+      iconUrl: 'https://img.icons8.com/color/96/privacy.png',
     ),
     FocusOption(
       title: 'Recovery support',
       icon: Icons.shield_rounded,
       color: AppColors.success,
+      iconUrl: 'https://img.icons8.com/color/96/shield.png',
     ),
     FocusOption(
       title: 'Anger control',
       icon: Icons.self_improvement_rounded,
       color: AppColors.support,
+      iconUrl: 'https://img.icons8.com/color/96/meditation-guru.png',
     ),
     FocusOption(
       title: 'General accountability',
       icon: Icons.groups_rounded,
       color: AppColors.green,
+      iconUrl: 'https://img.icons8.com/color/96/conference-call--v1.png',
     ),
     FocusOption(
       title: 'New believer growth',
       icon: Icons.spa_rounded,
       color: AppColors.gold,
+      iconUrl: 'https://img.icons8.com/color/96/sprout.png',
     ),
   ];
 

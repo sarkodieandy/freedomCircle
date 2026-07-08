@@ -10,9 +10,14 @@ import 'auth_flow_controller.dart';
 import 'auth_widgets.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
-  const OtpVerificationScreen({super.key, required this.onVerified});
+  const OtpVerificationScreen({
+    super.key,
+    required this.onVerified,
+    this.emailOrPhone,
+  });
 
   final VoidCallback onVerified;
+  final String? emailOrPhone;
 
   @override
   State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
@@ -69,7 +74,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
     });
 
     try {
-      await authController.verifyOtp(code);
+      await authController.verifyOtp(code, emailOrPhone: widget.emailOrPhone);
       if (!mounted) return;
       setState(() => verified = true);
       await Future<void>.delayed(const Duration(milliseconds: 440));

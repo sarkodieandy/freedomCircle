@@ -9,7 +9,7 @@ import '../../core/widgets/badges.dart';
 import '../../core/widgets/common_widgets.dart';
 import '../../core/widgets/progress_ring.dart';
 import '../../core/widgets/remote_image.dart';
-import '../chat/chat_screen.dart';
+import '../chat/group_chat_screen.dart';
 import '../checkin/daily_check_in_sheet.dart';
 import '../prayer/prayer_request_card.dart';
 
@@ -191,7 +191,10 @@ class _GroupChatTab extends StatelessWidget {
         SecondaryButton(
           label: 'Open full chat',
           icon: Icons.open_in_full_rounded,
-          onPressed: () => pushScreen(context, const ChatScreen()),
+          onPressed: () => pushScreen(
+            context,
+            GroupChatScreen(groupId: group.id, title: group.name),
+          ),
         ),
         const SizedBox(height: 12),
         const _ChatBubble(

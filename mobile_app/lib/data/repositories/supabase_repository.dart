@@ -1,35 +1,54 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:io';
 
+import 'package:supabase_flutter/supabase_flutter.dart' as sb;
+
+import '../../core/errors/app_exception.dart';
 import '../models/model_helpers.dart';
 import '../supabase/supabase_service.dart';
-
-class SupabaseRepositoryException implements Exception {
-  const SupabaseRepositoryException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => message;
-}
 
 abstract class SupabaseRepository {
   const SupabaseRepository({this.supabaseClient});
 
-  final SupabaseClient? supabaseClient;
+  final sb.SupabaseClient? supabaseClient;
 
-  SupabaseClient get client => supabaseClient ?? SupabaseService.client;
+  sb.SupabaseClient get client => supabaseClient ?? SupabaseService.client;
 
   Future<T> guard<T>(Future<T> Function() operation) async {
     try {
       return await operation();
-    } on PostgrestException catch (error, stackTrace) {
+    } on sb.PostgrestException catch (error, stackTrace) {
+      final message = error.message.toLowerCase();
+      final exception = switch (error.code) {
+        'PGRST301' ||
+        '42501' => PermissionException(error.message, cause: error),
+        _
+            when message.contains('permission') ||
+                message.contains('forbidden') =>
+          PermissionException(error.message, cause: error),
+        _ when message.contains('validation') || message.contains('invalid') =>
+          ValidationException(error.message, cause: error),
+        _ => AppException(error.message, code: error.code, cause: error),
+      };
+      Error.throwWithStackTrace(exception, stackTrace);
+    } on sb.AuthException catch (error, stackTrace) {
       Error.throwWithStackTrace(
-        SupabaseRepositoryException(error.message),
+        AuthException(error.message, cause: error),
         stackTrace,
       );
-    } on AuthException catch (error, stackTrace) {
+    } on SocketException catch (error, stackTrace) {
       Error.throwWithStackTrace(
-        SupabaseRepositoryException(error.message),
+        NetworkException(
+          'Network unavailable. Please check your connection.',
+          cause: error,
+        ),
+        stackTrace,
+      );
+    } catch (error, stackTrace) {
+      Error.throwWithStackTrace(
+        UnknownException(
+          'Something went wrong while loading data.',
+          cause: error,
+        ),
         stackTrace,
       );
     }

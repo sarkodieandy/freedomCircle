@@ -37,7 +37,10 @@ Core tables:
 - `paid_programs`, `program_modules`, `program_lessons`, and `program_purchases`: free, premium-included, and paid guided program access.
 - `promo_codes`, `promo_redemptions`, `feature_usage`, `paywall_events`, and `revenue_events`: growth, conversion, usage-limit, and revenue tracking.
 - `coach_commissions`, `coach_earnings`, and `coach_payouts`: helper marketplace commission and payout accounting.
-- `notifications`: user-owned notification inbox.
+- `notifications`, `notification_preferences`, `user_push_tokens`,
+  `notification_delivery_logs`, and `notification_templates`: safe in-app
+  notifications, live unread counts, push-token registration, push delivery
+  logs, and admin-managed notification copy.
 - `reports`, `user_blocks`, `audit_logs`: safety, blocking, and moderation
   history.
 - `app_content`, `app_settings`: admin-managed app copy, pricing, and content.
@@ -46,13 +49,16 @@ Supabase Realtime targets:
 
 - `group_messages` for live chat.
 - `group_members` for online/presence metadata.
+- `notifications` for the signed-in user's live inbox and unread badge.
 - `prayer_requests` and `community_posts` for moderated live updates after approval.
 
 Laravel admin connection:
 
 - Laravel should use server-side database credentials, never the Supabase anon key.
 - Admin actions should happen server-side through Filament resources or internal services.
-- The admin panel should manage reports, helpers, groups, posts, prayer requests, subscriptions, and payments.
+- The admin panel should manage reports, helpers, groups, posts, prayer requests,
+  subscriptions, payments, notification templates, delivery logs, and system or
+  church announcements.
 
 Client read views:
 
@@ -71,6 +77,10 @@ Client read views:
 - `admin_coach_commission_summary`
 - `admin_program_sales_summary`
 - `admin_paywall_conversion`
+- `unread_notifications_by_user`
+- `notification_delivery_summary`
+- `notification_engagement_summary`
+- `failed_push_notifications`
 
 Private recovery logs and journal entries are not exposed through realtime or
 public views.

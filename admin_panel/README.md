@@ -28,6 +28,8 @@ Admin resources to create:
 - Paid programs, program purchases, and promo codes
 - Revenue reports and paywall analytics
 - App banners, devotion plans, and recovery plans
+- Notification templates, delivery logs, announcement sending, and failed push
+  retries
 
 Suggested Filament resources:
 
@@ -49,6 +51,9 @@ Suggested Filament resources:
 - `ProgramPurchaseResource`
 - `PromoCodeResource`
 - `RevenueReportResource`
+- `NotificationTemplateResource`
+- `NotificationDeliveryLogResource`
+- `NotificationAnnouncementResource`
 
 Operational notes:
 
@@ -59,3 +64,6 @@ Operational notes:
 - Paystack webhooks should route to `routes/api.php` and
   `PaystackWebhookController`; payment success must not be accepted from
   Flutter.
+- Notification admin actions should use `NotificationService` so system and
+  church announcements create safe Supabase notifications and push retries flow
+  through Edge Functions.

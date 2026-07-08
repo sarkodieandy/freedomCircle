@@ -2,12 +2,39 @@ import 'package:flutter/material.dart';
 
 import '../../app/constants.dart';
 import '../../app/routes.dart';
+import '../../data/repositories/auth_repository.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/common_widgets.dart';
 import '../../core/widgets/screen_shell.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
+
+  static const _authRepository = AuthRepository();
+
+  Future<void> _logout(BuildContext context) async {
+    await _authRepository.signOut();
+    if (!context.mounted) return;
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
+  void _deleteAccountPlaceholder(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete account'),
+        content: const Text(
+          'Account deletion is handled by a secure server workflow. Contact support to complete this action for now.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -80,6 +107,16 @@ class SettingsScreen extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         AppCard(
+          child: SettingsTile(
+            icon: Icons.notifications_active_rounded,
+            title: 'Notification preferences',
+            subtitle: 'Push, email, quiet hours, reminders, and alerts',
+            onTap: () =>
+                Navigator.pushNamed(context, AppRoutes.notificationPreferences),
+          ),
+        ),
+        const SizedBox(height: 16),
+        AppCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -143,7 +180,7 @@ class SettingsScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () => showComingSoon(context, 'Logout'),
+                      onPressed: () => _logout(context),
                       icon: const Icon(Icons.logout_rounded),
                       label: const Text('Logout'),
                     ),
@@ -151,8 +188,7 @@ class SettingsScreen extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () =>
-                          showComingSoon(context, 'Delete account'),
+                      onPressed: () => _deleteAccountPlaceholder(context),
                       icon: const Icon(Icons.delete_outline_rounded),
                       label: const Text('Delete'),
                       style: OutlinedButton.styleFrom(

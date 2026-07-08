@@ -5,6 +5,8 @@ import 'supabase_repository.dart';
 class CommunityRepository extends SupabaseRepository {
   const CommunityRepository({super.supabaseClient});
 
+  Future<List<CommunityPost>> getCommunityFeed() => posts();
+
   Future<List<CommunityPost>> posts() {
     return guard(() async {
       final rows = await client
@@ -48,6 +50,32 @@ class CommunityRepository extends SupabaseRepository {
     });
   }
 
+  Future<CommunityPost> updatePost(String postId, Map<String, dynamic> values) {
+    return guard(() async {
+      final row = await client
+          .from('community_posts')
+          .update(values)
+          .eq('id', postId)
+          .select()
+          .single();
+      return CommunityPost.fromMap(mapRow(row));
+    });
+  }
+
+  Future<void> deletePost(String postId) {
+    return guard(() async {
+      await client.from('community_posts').delete().eq('id', postId);
+    });
+  }
+
+  Future<List<PostComment>> getPostComments(String postId) => comments(postId);
+
+  Future<void> deleteComment(String commentId) {
+    return guard(() async {
+      await client.from('post_comments').delete().eq('id', commentId);
+    });
+  }
+
   Future<void> react({
     required String postId,
     required String userId,
@@ -60,5 +88,44 @@ class CommunityRepository extends SupabaseRepository {
         'reaction': reaction,
       }),
     );
+  }
+
+  Future<void> reactToPost({
+    required String postId,
+    required String userId,
+    required String reaction,
+  }) => react(postId: postId, userId: userId, reaction: reaction);
+
+  Future<void> removeReaction({
+    required String postId,
+    required String userId,
+  }) {
+    return guard(() async {
+      await client
+          .from('post_reactions')
+          .delete()
+          .eq('post_id', postId)
+          .eq('user_id', userId);
+    });
+  }
+
+  Future<void> reportPost(Map<String, dynamic> values) {
+    return guard(() async {
+      await client.from('reports').insert(values);
+    });
+  }
+
+  Future<void> blockUser({
+    required String blockerId,
+    required String blockedId,
+    String reason = 'community_safety',
+  }) {
+    return guard(() async {
+      await client.from('user_blocks').upsert({
+        'blocker_id': blockerId,
+        'blocked_id': blockedId,
+        'reason': reason,
+      }, onConflict: 'blocker_id,blocked_id');
+    });
   }
 }

@@ -9,6 +9,7 @@ import '../../core/widgets/badges.dart';
 import '../../core/widgets/common_widgets.dart';
 import '../../core/widgets/remote_image.dart';
 import '../../core/widgets/screen_shell.dart';
+import '../chat/private_chat_screen.dart';
 import 'booking_screen.dart';
 
 class HelperProfileScreen extends StatelessWidget {
@@ -147,6 +148,15 @@ class HelperProfileScreen extends StatelessWidget {
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 10),
+        SecondaryButton(
+          label: 'Message helper',
+          icon: Icons.chat_bubble_rounded,
+          onPressed: () => pushScreen(
+            context,
+            PrivateChatScreen(otherUserId: helper.userId, title: helper.name),
+          ),
         ),
         const SizedBox(height: 10),
         SecondaryButton(

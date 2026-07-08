@@ -1,3 +1,6 @@
+import '../../core/errors/app_exception.dart';
+import '../../data/repositories/auth_repository.dart';
+
 class AuthFlowException implements Exception {
   const AuthFlowException(this.message);
 
@@ -8,18 +11,27 @@ class AuthFlowException implements Exception {
 }
 
 class AuthFlowController {
-  const AuthFlowController();
+  const AuthFlowController({this.authRepository = const AuthRepository()});
+
+  final AuthRepository authRepository;
 
   Future<void> signInWithEmail({
     required String email,
     required String password,
   }) async {
-    await Future<void>.delayed(const Duration(milliseconds: 720));
     if (!_looksLikeEmail(email)) {
       throw const AuthFlowException('Enter a valid email address.');
     }
     if (password.length < 6) {
       throw const AuthFlowException('Password must be at least 6 characters.');
+    }
+    try {
+      await authRepository.signInWithEmail(
+        email: email.trim(),
+        password: password,
+      );
+    } on AppException catch (error) {
+      throw AuthFlowException(error.message);
     }
   }
 
@@ -32,7 +44,6 @@ class AuthFlowController {
     String? phone,
     required bool acceptedTerms,
   }) async {
-    await Future<void>.delayed(const Duration(milliseconds: 820));
     if (fullName.trim().length < 2) {
       throw const AuthFlowException('Add your full name.');
     }
@@ -51,24 +62,51 @@ class AuthFlowController {
     if (!acceptedTerms) {
       throw const AuthFlowException('Accept the terms and privacy promise.');
     }
-  }
-
-  Future<void> sendPasswordReset(String email) async {
-    await Future<void>.delayed(const Duration(milliseconds: 700));
-    if (!_looksLikeEmail(email)) {
-      throw const AuthFlowException('Enter the email linked to your account.');
+    try {
+      await authRepository.signUpWithEmail(
+        fullName: fullName.trim(),
+        username: username.trim(),
+        email: email.trim(),
+        password: password,
+        phone: phone?.trim(),
+      );
+    } on AppException catch (error) {
+      throw AuthFlowException(error.message);
     }
   }
 
-  Future<void> verifyOtp(String code) async {
-    await Future<void>.delayed(const Duration(milliseconds: 640));
+  Future<void> sendPasswordReset(String email) async {
+    if (!_looksLikeEmail(email)) {
+      throw const AuthFlowException('Enter the email linked to your account.');
+    }
+    try {
+      await authRepository.sendPasswordReset(email.trim());
+    } on AppException catch (error) {
+      throw AuthFlowException(error.message);
+    }
+  }
+
+  Future<void> verifyOtp(String code, {String? emailOrPhone}) async {
     if (code.length != 6) {
       throw const AuthFlowException('Enter the full 6-digit code.');
+    }
+    final target = emailOrPhone?.trim();
+    if (target == null || target.isEmpty) {
+      return;
+    }
+    try {
+      await authRepository.verifyOtp(emailOrPhone: target, token: code);
+    } on AppException catch (error) {
+      throw AuthFlowException(error.message);
     }
   }
 
   Future<void> signOut() async {
-    await Future<void>.delayed(const Duration(milliseconds: 300));
+    try {
+      await authRepository.signOut();
+    } on AppException catch (error) {
+      throw AuthFlowException(error.message);
+    }
   }
 
   bool _looksLikeEmail(String value) {

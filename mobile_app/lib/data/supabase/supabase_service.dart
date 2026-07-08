@@ -40,6 +40,10 @@ class SupabaseService {
   static Session? get currentSession =>
       _initialized ? Supabase.instance.client.auth.currentSession : null;
 
+  static bool get isLoggedIn => currentUser != null;
+
+  static String? get currentUserId => currentUser?.id;
+
   static Stream<AuthState> get authStateChanges {
     if (!_initialized) {
       return const Stream<AuthState>.empty();
@@ -54,5 +58,10 @@ class SupabaseService {
     }
 
     await Supabase.instance.client.auth.signOut();
+  }
+
+  static Future<void> refreshSession() async {
+    if (!_initialized) return;
+    await Supabase.instance.client.auth.refreshSession();
   }
 }

@@ -7,6 +7,8 @@ import '../../core/widgets/app_card.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/common_widgets.dart';
 import '../../core/widgets/screen_shell.dart';
+import '../../data/repositories/journal_repository.dart';
+import '../../data/supabase/supabase_service.dart';
 import '../monetization/feature_locked_modal.dart';
 
 class JournalScreen extends StatefulWidget {
@@ -108,14 +110,62 @@ class _PromptCard extends StatelessWidget {
   }
 }
 
-class _NewEntryCard extends StatelessWidget {
+class _NewEntryCard extends StatefulWidget {
   const _NewEntryCard();
 
+  @override
+  State<_NewEntryCard> createState() => _NewEntryCardState();
+}
+
+class _NewEntryCardState extends State<_NewEntryCard> {
+  final _journalRepository = const JournalRepository();
+  final _titleController = TextEditingController();
+  final _bodyController = TextEditingController();
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _bodyController.dispose();
+    super.dispose();
+  }
+
   Future<void> _save(BuildContext context) async {
+    if (_saving) return;
+    final userId = SupabaseService.currentUserId;
+    if (userId == null) {
+      showComingSoon(context, 'Sign in to save journal entry');
+      return;
+    }
+
+    final title = _titleController.text.trim();
+    final body = _bodyController.text.trim();
+    if (title.isEmpty || body.isEmpty) {
+      showComingSoon(context, 'Title and journal content are required');
+      return;
+    }
+
     final allowed = await MonetizationService.instance.canCreateJournalEntry();
     if (!context.mounted) return;
     if (allowed) {
-      showComingSoon(context, 'Journal saving');
+      try {
+        setState(() => _saving = true);
+        await _journalRepository.createJournalEntry({
+          'user_id': userId,
+          'title': title,
+          'content': body,
+          'visibility': 'private',
+          'is_locked': true,
+        });
+        if (!context.mounted) return;
+        _titleController.clear();
+        _bodyController.clear();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Private journal entry saved.')),
+        );
+      } finally {
+        if (mounted) setState(() => _saving = false);
+      }
       return;
     }
     await FeatureLockedModal.show(
@@ -154,14 +204,16 @@ class _NewEntryCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          const TextField(
+          TextField(
+            controller: _titleController,
             decoration: InputDecoration(
               labelText: 'Entry title',
               prefixIcon: Icon(Icons.title_rounded),
             ),
           ),
           const SizedBox(height: 12),
-          const TextField(
+          TextField(
+            controller: _bodyController,
             maxLines: 5,
             decoration: InputDecoration(
               hintText: 'Write privately...',
@@ -170,7 +222,7 @@ class _NewEntryCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           PrimaryButton(
-            label: 'Save private entry',
+            label: _saving ? 'Saving...' : 'Save private entry',
             icon: Icons.lock_rounded,
             onPressed: () => _save(context),
           ),

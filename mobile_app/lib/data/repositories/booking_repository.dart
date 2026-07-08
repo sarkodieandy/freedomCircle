@@ -4,6 +4,11 @@ import 'supabase_repository.dart';
 class BookingRepository extends SupabaseRepository {
   const BookingRepository({super.supabaseClient});
 
+  Future<List<Booking>> getUserBookings(String userId) => userBookings(userId);
+
+  Future<List<Booking>> getHelperBookings(String helperId) =>
+      helperBookings(helperId);
+
   Future<List<Booking>> userBookings(String userId) {
     return guard(() async {
       final rows = await client
@@ -46,6 +51,46 @@ class BookingRepository extends SupabaseRepository {
           .select()
           .single();
       return Booking.fromMap(mapRow(row));
+    });
+  }
+
+  Future<Booking> updateBookingStatus(String bookingId, String status) =>
+      updateStatus(bookingId, status);
+
+  Future<Map<String, dynamic>> createPaymentRequestPlaceholder({
+    required String bookingId,
+    required String userId,
+    required num amount,
+    String currency = 'GHS',
+  }) {
+    // TODO(server): verify provider callback/webhook before marking paid.
+    return guard(() async {
+      final row = await client
+          .from('payments')
+          .insert({
+            'booking_id': bookingId,
+            'user_id': userId,
+            'amount': amount,
+            'currency': currency,
+            'status': 'pending',
+            'provider': 'paystack_placeholder',
+          })
+          .select()
+          .single();
+      return mapRow(row);
+    });
+  }
+
+  Future<Map<String, dynamic>?> getBookingPaymentStatus(String bookingId) {
+    return guard(() async {
+      final row = await client
+          .from('payments')
+          .select()
+          .eq('booking_id', bookingId)
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      return row == null ? null : mapRow(row);
     });
   }
 }

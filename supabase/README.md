@@ -14,6 +14,13 @@ SUPABASE_URL=https://bwfwzhzjvggntmyceezs.supabase.co
 SUPABASE_ANON_KEY=your_anon_or_publishable_key_here
 SUPABASE_SERVICE_ROLE_KEY=server_only_do_not_use_in_flutter
 SUPABASE_DB_URL=postgresql_connection_string_here
+FCM_PROJECT_ID=server_only_fcm_project_id
+FCM_CLIENT_EMAIL=server_only_fcm_client_email
+FCM_PRIVATE_KEY=server_only_fcm_private_key
+APNS_KEY_ID=server_only_apns_key_id
+APNS_TEAM_ID=server_only_apns_team_id
+APNS_BUNDLE_ID=server_only_apns_bundle_id
+APNS_PRIVATE_KEY=server_only_apns_private_key
 ```
 
 ## CLI Workflow
@@ -42,6 +49,21 @@ Realtime is enabled for:
 
 Use Supabase Broadcast/Presence from the Flutter client for typing indicators, group online presence, and live support room previews. Private recovery logs and journal entries are not added to realtime.
 
+## Notifications
+
+`0015_notifications_system.sql` upgrades the in-app notification system with
+preferences, push tokens, delivery logs, templates, trigger-generated events,
+unread counts, and analytics views. Flutter subscribes only to the current
+user's `notifications` rows. Push delivery is handled by Edge Functions:
+
+- `send-push-notification`: checks preferences, quiet hours, active tokens,
+  FCM/APNs environment variables, and writes delivery logs.
+- `process-notification`: accepts a notification id or database-webhook record
+  payload and invokes push delivery when the template allows it.
+
+Do not place FCM/APNs private keys in Flutter. Use Supabase Edge Function
+secrets or Laravel environment variables only.
+
 ## Storage Buckets
 
 Configured buckets:
@@ -59,6 +81,8 @@ Configured buckets:
 - Every public table has RLS enabled.
 - Private journals, private recovery logs, spiritual logs, and personal check-ins are owner-only.
 - Group chat and group resources require approved membership.
+- Notifications use safe, generic text for anonymous or sensitive updates and
+  never include private journal, recovery log, or check-in details in push text.
 - Payment success is server verified. Flutter can create a pending payment request, but Laravel/backend must verify the provider callback and update final status.
 - Monetization access is controlled by `plans`, `plan_features`, `subscriptions`, `entitlements`, and the `verify_entitlement()` / `verify_org_entitlement()` functions.
 - Successful trusted payment updates trigger revenue logging, entitlement grants, coach earnings, and paid program purchases.

@@ -93,7 +93,10 @@ class _AuthScreenState extends State<AuthScreen> {
         if (!mounted) return;
         pushAuthScreen(
           context,
-          OtpVerificationScreen(onVerified: _openSuccess),
+          OtpVerificationScreen(
+            onVerified: _openSuccess,
+            emailOrPhone: emailController.text.trim(),
+          ),
         );
       }
     } on AuthFlowException catch (error) {

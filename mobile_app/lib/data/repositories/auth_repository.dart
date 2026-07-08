@@ -1,17 +1,21 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
 import 'supabase_repository.dart';
 
 class AuthRepository extends SupabaseRepository {
   const AuthRepository({super.supabaseClient});
 
-  User? get currentUser => client.auth.currentUser;
+  sb.User? get currentUser => client.auth.currentUser;
 
-  Session? get currentSession => client.auth.currentSession;
+  sb.Session? get currentSession => client.auth.currentSession;
 
-  Stream<AuthState> authStateChanges() => client.auth.onAuthStateChange;
+  Stream<sb.AuthState> authStateChanges() => client.auth.onAuthStateChange;
 
-  Future<AuthResponse> signInWithEmail({
+  Stream<sb.AuthState> listenToAuthChanges() => authStateChanges();
+
+  sb.User? getCurrentUser() => currentUser;
+
+  Future<sb.AuthResponse> signInWithEmail({
     required String email,
     required String password,
   }) {
@@ -20,18 +24,39 @@ class AuthRepository extends SupabaseRepository {
     );
   }
 
-  Future<AuthResponse> signUpWithEmail({
+  Future<sb.AuthResponse> signUpWithEmail({
+    required String fullName,
+    required String username,
     required String email,
     required String password,
-    String? fullName,
+    String? phone,
   }) {
     return guard(
       () => client.auth.signUp(
         email: email,
         password: password,
-        data: fullName == null ? null : {'full_name': fullName},
+        data: {
+          'full_name': fullName,
+          'username': username,
+          if (phone != null && phone.isNotEmpty) 'phone': phone,
+        },
       ),
     );
+  }
+
+  Future<sb.AuthResponse> verifyOtp({
+    required String emailOrPhone,
+    required String token,
+  }) {
+    return guard(() {
+      final isEmail = emailOrPhone.contains('@');
+      return client.auth.verifyOTP(
+        email: isEmail ? emailOrPhone : null,
+        phone: isEmail ? null : emailOrPhone,
+        token: token,
+        type: isEmail ? sb.OtpType.email : sb.OtpType.sms,
+      );
+    });
   }
 
   Future<void> sendPasswordReset(String email) {

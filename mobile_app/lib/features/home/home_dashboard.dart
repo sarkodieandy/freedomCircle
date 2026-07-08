@@ -19,6 +19,7 @@ import '../helpers/coach_directory_screen.dart';
 import '../groups/group_detail_screen.dart';
 import '../journal/journal_screen.dart';
 import '../notifications/notifications_screen.dart';
+import '../notifications/widgets/notification_badge.dart';
 import '../prayer/prayer_wall_screen.dart';
 import '../quiet_time/quiet_time_home_screen.dart';
 import '../recovery/recovery_tracker_screen.dart';
@@ -86,7 +87,9 @@ class _HomeDashboardState extends State<HomeDashboard> {
                     IconButton.filledTonal(
                       onPressed: () =>
                           pushScreen(context, const NotificationsScreen()),
-                      icon: const Icon(Icons.notifications_none_rounded),
+                      icon: const NotificationBadge(
+                        child: Icon(Icons.notifications_none_rounded),
+                      ),
                       tooltip: 'Notifications',
                     ),
                   ],

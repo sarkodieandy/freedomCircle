@@ -5,9 +5,11 @@ class FocusOption {
     required this.title,
     required this.icon,
     required this.color,
+    this.iconUrl,
   });
 
   final String title;
   final IconData icon;
   final Color color;
+  final String? iconUrl;
 }

@@ -2,6 +2,7 @@ import 'model_helpers.dart';
 
 class AccountabilityGroup {
   const AccountabilityGroup({
+    this.id = '',
     required this.name,
     required this.description,
     required this.imageUrl,
@@ -13,6 +14,7 @@ class AccountabilityGroup {
     required this.isPremium,
   });
 
+  final String id;
   final String name;
   final String description;
   final String imageUrl;
@@ -25,6 +27,7 @@ class AccountabilityGroup {
 
   factory AccountabilityGroup.fromMap(JsonMap map) {
     return AccountabilityGroup(
+      id: readString(map, 'id'),
       name: readString(map, 'name'),
       description: readString(map, 'description'),
       imageUrl: readString(
