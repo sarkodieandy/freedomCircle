@@ -1,4 +1,4 @@
-package com.example.mobile_app
+package com.freedomcircle.mobile
 
 import io.flutter.embedding.android.FlutterActivity
 

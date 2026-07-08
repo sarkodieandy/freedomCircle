@@ -1,4 +1,6 @@
 import '../../data/models/monetization_models.dart';
+import '../../data/models/revenuecat_models.dart';
+import '../../data/repositories/subscription_repository.dart';
 import '../../data/supabase/supabase_service.dart';
 
 class MonetizationService {
@@ -6,21 +8,60 @@ class MonetizationService {
 
   static const instance = MonetizationService._();
 
-  static const premiumFeatures = {
+  static const premiumFeatureKeys = {
+    'premium_access',
     'recovery_goals_unlimited',
-    'advanced_insights',
+    'advanced_recovery_insights',
     'premium_groups',
     'unlimited_journal',
+    'quiet_time_premium_library',
+    'quiet_time_advanced_insights',
     'helper_matching',
     'guided_programs',
-    'paid_program_access',
     'private_anonymous_controls',
   };
+
+  static const _subscriptionRepository = SubscriptionRepository();
+
+  static CustomerPremiumStatus? _cachedPremiumStatus;
+
+  Future<void> initializePremiumWatcher() async {
+    _subscriptionRepository.watchPremiumStatus().listen((status) {
+      _cachedPremiumStatus = status;
+    });
+    await refreshEntitlements();
+  }
+
+  Future<void> refreshEntitlements() async {
+    if (!SupabaseService.isInitialized ||
+        SupabaseService.currentUserId == null) {
+      return;
+    }
+
+    final status = await _subscriptionRepository.getCustomerStatus();
+    _cachedPremiumStatus = status;
+    await _subscriptionRepository.syncPremiumStatusToSupabase();
+  }
+
+  Future<bool> _isRevenueCatPremium() async {
+    if (_cachedPremiumStatus != null) {
+      return _cachedPremiumStatus!.isPremium;
+    }
+
+    final status = await _subscriptionRepository.getCustomerStatus();
+    _cachedPremiumStatus = status;
+    return status.isPremium;
+  }
 
   Future<bool> hasFeature(String featureKey) async {
     final userId = SupabaseService.currentUser?.id;
     if (!SupabaseService.isInitialized || userId == null) {
-      return !premiumFeatures.contains(featureKey);
+      return !premiumFeatureKeys.contains(featureKey);
+    }
+
+    if (premiumFeatureKeys.contains(featureKey) &&
+        await _isRevenueCatPremium()) {
+      return true;
     }
 
     final result = await SupabaseService.client.rpc<bool>(
@@ -48,20 +89,35 @@ class MonetizationService {
     final userId = SupabaseService.currentUser?.id;
     if (userId == null) return false;
     if (await hasFeature('recovery_goals_unlimited')) return true;
+
+    final appSettings = await SupabaseService.client
+        .from('app_settings')
+        .select('setting_value')
+        .eq('setting_key', 'free_recovery_goals_limit')
+        .maybeSingle();
+    final freeLimit =
+        (appSettings?['setting_value']?['limit'] as num?)?.toInt() ?? 2;
+
     final rows = await SupabaseService.client
         .from('user_recovery_goals')
         .select('id')
         .eq('user_id', userId);
-    return (rows as List).length < 2;
+    return (rows as List).length < freeLimit;
   }
 
   Future<bool> canAccessPremiumGroup(String groupId) {
     return hasFeature('premium_groups');
   }
 
-  Future<bool> canUseAdvancedInsights() {
-    return hasFeature('advanced_insights');
+  Future<bool> canAccessPremiumQuietTimeSession(String sessionId) {
+    return hasFeature('quiet_time_premium_library');
   }
+
+  Future<bool> canUseAdvancedRecoveryInsights() {
+    return hasFeature('advanced_recovery_insights');
+  }
+
+  Future<bool> canUseAdvancedInsights() => canUseAdvancedRecoveryInsights();
 
   Future<bool> canCreateJournalEntry() async {
     if (await hasFeature('unlimited_journal')) return true;
@@ -72,7 +128,15 @@ class MonetizationService {
         .from('journal_entries')
         .select('id')
         .eq('user_id', userId);
-    return (rows as List).length < 10;
+
+    final appSettings = await SupabaseService.client
+        .from('app_settings')
+        .select('setting_value')
+        .eq('setting_key', 'free_journal_entry_limit')
+        .maybeSingle();
+    final freeLimit =
+        (appSettings?['setting_value']?['limit'] as num?)?.toInt() ?? 10;
+    return (rows as List).length < freeLimit;
   }
 
   Future<bool> canAccessProgram(String programId) async {
@@ -100,8 +164,14 @@ class MonetizationService {
     return purchase != null;
   }
 
-  Future<bool> isPremiumUser() async {
-    return hasFeature('advanced_insights');
+  Future<bool> isPremiumUser() => _isRevenueCatPremium();
+
+  Future<void> openPaywallForFeature(String featureKey) async {
+    await _trackPaywallEvent(
+      screen: 'feature_gate',
+      featureKey: featureKey,
+      eventType: 'viewed',
+    );
   }
 
   Future<bool> isChurchPlanActive(String organizationId) async {
@@ -125,8 +195,57 @@ class MonetizationService {
     return _trackPaywallEvent(
       screen: screen,
       featureKey: 'upgrade',
-      eventType: 'clicked_upgrade',
+      eventType: 'selected_package',
       planCode: planCode,
+    );
+  }
+
+  Future<void> trackPurchaseStarted(String screen, String planCode) {
+    return _trackPaywallEvent(
+      screen: screen,
+      featureKey: 'premium_access',
+      eventType: 'purchase_started',
+      planCode: planCode,
+    );
+  }
+
+  Future<void> trackPurchaseResult({
+    required String screen,
+    required String planCode,
+    required PurchaseResult result,
+  }) {
+    final eventType = result.cancelled
+        ? 'purchase_cancelled'
+        : (result.success ? 'purchase_success' : 'purchase_failed');
+    return _trackPaywallEvent(
+      screen: screen,
+      featureKey: 'premium_access',
+      eventType: eventType,
+      planCode: planCode,
+      metadata: {
+        'status': result.status,
+        if (result.message != null) 'message': result.message,
+      },
+    );
+  }
+
+  Future<void> trackRestoreStarted(String screen) {
+    return _trackPaywallEvent(
+      screen: screen,
+      featureKey: 'premium_access',
+      eventType: 'restore_started',
+    );
+  }
+
+  Future<void> trackRestoreResult(String screen, PurchaseResult result) {
+    return _trackPaywallEvent(
+      screen: screen,
+      featureKey: 'premium_access',
+      eventType: result.success ? 'restore_success' : 'restore_failed',
+      metadata: {
+        'status': result.status,
+        if (result.message != null) 'message': result.message,
+      },
     );
   }
 
@@ -187,6 +306,7 @@ class MonetizationService {
     required String featureKey,
     required String eventType,
     String? planCode,
+    Map<String, dynamic>? metadata,
   }) async {
     if (!SupabaseService.isInitialized) return;
     await SupabaseService.client.from('paywall_events').insert({
@@ -195,6 +315,7 @@ class MonetizationService {
       'feature_key': featureKey,
       'event_type': eventType,
       'plan_code': planCode,
+      'metadata': metadata ?? const {},
     });
   }
 

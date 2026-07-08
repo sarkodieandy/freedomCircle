@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
+import '../../core/errors/app_exception.dart' show AuthException;
 import 'supabase_repository.dart';
 
 class AuthRepository extends SupabaseRepository {
@@ -50,6 +51,9 @@ class AuthRepository extends SupabaseRepository {
   }) {
     return guard(() {
       final isEmail = emailOrPhone.contains('@');
+      if (!isEmail) {
+        return _verifyPhoneOtp(emailOrPhone, token);
+      }
       return client.auth.verifyOTP(
         email: isEmail ? emailOrPhone : null,
         phone: isEmail ? null : emailOrPhone,
@@ -59,11 +63,70 @@ class AuthRepository extends SupabaseRepository {
     });
   }
 
+  Future<void> sendOtp({required String emailOrPhone}) {
+    return guard(() async {
+      final isEmail = emailOrPhone.contains('@');
+      if (isEmail) {
+        await client.auth.resend(type: sb.OtpType.signup, email: emailOrPhone);
+        return;
+      }
+
+      await _invokeOtpFunction('send', {
+        'phone': emailOrPhone,
+        'purpose': 'auth_login',
+        'user_id': currentUser?.id,
+      });
+    });
+  }
+
   Future<void> sendPasswordReset(String email) {
     return guard(() => client.auth.resetPasswordForEmail(email));
   }
 
   Future<void> signOut() {
     return guard(() => client.auth.signOut());
+  }
+
+  Future<sb.AuthResponse> _verifyPhoneOtp(String phone, String token) async {
+    await _invokeOtpFunction('verify', {
+      'phone': phone,
+      'code': token,
+      'purpose': 'auth_login',
+      'user_id': currentUser?.id,
+    });
+
+    final session = currentSession;
+    final user = currentUser;
+    return sb.AuthResponse(session: session, user: user);
+  }
+
+  Future<Map<String, dynamic>> _invokeOtpFunction(
+    String action,
+    Map<String, dynamic> payload,
+  ) async {
+    final response = await client.functions.invoke(
+      'africastalking-otp',
+      body: {'action': action, ...payload},
+    );
+
+    final data = response.data;
+    final decoded = data is Map<String, dynamic>
+        ? data
+        : <String, dynamic>{'message': data?.toString()};
+
+    if (response.status < 200 || response.status >= 300) {
+      throw AuthException(
+        decoded['message']?.toString() ??
+            'OTP request failed with status ${response.status}.',
+      );
+    }
+
+    if (decoded['verified'] == false) {
+      throw AuthException(
+        decoded['message']?.toString() ?? 'OTP verification failed.',
+      );
+    }
+
+    return decoded;
   }
 }

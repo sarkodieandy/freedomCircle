@@ -4,6 +4,7 @@ import '../../app/constants.dart';
 import '../../app/images.dart';
 import '../../core/animations/fade_slide_in.dart';
 import '../../core/services/app_state.dart';
+import '../../core/services/monetization_service.dart';
 import '../../core/widgets/empty_states_screen.dart';
 import '../../core/widgets/app_buttons.dart';
 import '../../core/widgets/app_card.dart';
@@ -38,11 +39,13 @@ class HomeDashboard extends StatefulWidget {
 class _HomeDashboardState extends State<HomeDashboard> {
   final FreedomRepository _repository = RepositoryProvider.freedomRepository();
   late final Future<List<AccountabilityGroup>> _groupsFuture;
+  late final Future<bool> _premiumFuture;
 
   @override
   void initState() {
     super.initState();
     _groupsFuture = _repository.groups();
+    _premiumFuture = MonetizationService.instance.isPremiumUser();
   }
 
   AccountabilityGroup? _groupAt(List<AccountabilityGroup> groups, int index) {
@@ -83,6 +86,22 @@ class _HomeDashboardState extends State<HomeDashboard> {
                           ),
                         ],
                       ),
+                    ),
+                    FutureBuilder<bool>(
+                      future: _premiumFuture,
+                      builder: (context, premiumSnapshot) {
+                        if (premiumSnapshot.data == true) {
+                          return const Padding(
+                            padding: EdgeInsets.only(right: 6),
+                            child: StatusBadge(
+                              label: 'Premium',
+                              color: AppColors.gold,
+                              icon: Icons.workspace_premium_rounded,
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
                     ),
                     IconButton.filledTonal(
                       onPressed: () =>
@@ -244,6 +263,37 @@ class _HomeDashboardState extends State<HomeDashboard> {
                       ),
                     ],
                   ),
+                ),
+                const SizedBox(height: 18),
+                FutureBuilder<bool>(
+                  future: _premiumFuture,
+                  builder: (context, premiumSnapshot) {
+                    final isPremium = premiumSnapshot.data == true;
+                    if (isPremium) {
+                      return const SizedBox.shrink();
+                    }
+                    return AppCard(
+                      onTap: () =>
+                          pushScreen(context, const SubscriptionScreen()),
+                      color: AppColors.softGreen,
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.workspace_premium_rounded,
+                            color: AppColors.gold,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Upgrade to Premium for deeper insights and unlimited growth tools.',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ),
+                          const Icon(Icons.arrow_forward_rounded),
+                        ],
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 18),
                 _QuickActionGrid(

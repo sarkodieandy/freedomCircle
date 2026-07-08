@@ -203,7 +203,7 @@ class _TriggerInsightCard extends StatelessWidget {
     if (!allowed) {
       await FeatureLockedModal.show(
         context,
-        featureKey: 'advanced_insights',
+        featureKey: 'advanced_recovery_insights',
         featureName: 'Unlock deeper insights for your growth journey.',
         reason:
             'Advanced charts, trigger insights, and weekly reports are Premium features.',

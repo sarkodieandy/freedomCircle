@@ -114,7 +114,7 @@ class SelectableOption extends StatelessWidget {
                   child: Image.network(
                     iconUrl!,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Icon(icon, color: accent),
+                    errorBuilder: (_, _, _) => Icon(icon, color: accent),
                   ),
                 ),
         ),

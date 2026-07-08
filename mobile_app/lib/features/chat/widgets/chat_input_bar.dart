@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../data/models/chat_message.dart';
 import 'attachment_picker_sheet.dart';
 import 'recording_button.dart';
+import 'recording_timer.dart';
 import 'reply_preview.dart';
 
 class ChatInputBar extends StatefulWidget {
@@ -14,6 +15,7 @@ class ChatInputBar extends StatefulWidget {
     this.replyingTo,
     this.onCancelReply,
     this.isRecording = false,
+    this.recordingSeconds = 0,
     this.isAnonymous = false,
     this.onAnonymousChanged,
   });
@@ -24,6 +26,7 @@ class ChatInputBar extends StatefulWidget {
   final ChatMessage? replyingTo;
   final VoidCallback? onCancelReply;
   final bool isRecording;
+  final int recordingSeconds;
   final bool isAnonymous;
   final ValueChanged<bool>? onAnonymousChanged;
 
@@ -93,6 +96,17 @@ class _ChatInputBarState extends State<ChatInputBar> {
                 ),
               ],
             ),
+            if (widget.isRecording)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Row(
+                  children: [
+                    const Icon(Icons.fiber_manual_record_rounded, size: 16),
+                    const SizedBox(width: 6),
+                    RecordingTimer(seconds: widget.recordingSeconds),
+                  ],
+                ),
+              ),
             if (widget.onAnonymousChanged != null)
               SwitchListTile.adaptive(
                 dense: true,

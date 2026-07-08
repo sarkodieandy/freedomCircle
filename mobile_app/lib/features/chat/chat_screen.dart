@@ -200,6 +200,7 @@ class _ChatScreenState extends State<ChatScreen> {
               replyingTo: _chatController.replyingTo,
               onCancelReply: () => _chatController.setReply(null),
               isRecording: _recordingController.state.isRecording,
+              recordingSeconds: _recordingController.state.durationSeconds,
               isAnonymous: _chatController.isAnonymous,
               onAnonymousChanged: widget.allowAnonymous
                   ? _chatController.setAnonymous
@@ -249,6 +250,7 @@ class _ChatScreenState extends State<ChatScreen> {
       final filePath = await _recordingRepository.uploadVoiceNote(
         conversationId: conversationId,
         localFilePath: state.localFilePath!,
+        mimeType: 'audio/mp4',
       );
       final signedUrl = await _recordingRepository.signedVoiceUrl(filePath);
       final message = await _repository.sendVoiceMessage(

@@ -1,8 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../app/constants.dart';
 import '../../app/images.dart';
-import '../../core/widgets/app_buttons.dart';
 import '../../core/widgets/app_logo.dart';
 import '../../core/widgets/remote_image.dart';
 
@@ -17,7 +18,10 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final controller = PageController();
+  Timer? _autoSlideTimer;
+
   int page = 0;
+  bool _completed = false;
 
   final pages = const [
     _OnboardingPageData(
@@ -44,20 +48,35 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _startAutoSlide();
+  }
+
+  @override
   void dispose() {
+    _autoSlideTimer?.cancel();
     controller.dispose();
     super.dispose();
   }
 
-  void advance() {
-    if (page == pages.length - 1) {
-      widget.onFinished();
-      return;
-    }
-    controller.nextPage(
-      duration: const Duration(milliseconds: 360),
-      curve: Curves.easeOutCubic,
-    );
+  void _startAutoSlide() {
+    _autoSlideTimer?.cancel();
+    _autoSlideTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (!mounted || _completed) return;
+
+      if (page >= pages.length - 1) {
+        _completed = true;
+        _autoSlideTimer?.cancel();
+        widget.onFinished();
+        return;
+      }
+
+      controller.nextPage(
+        duration: const Duration(milliseconds: 650),
+        curve: Curves.easeInOutCubic,
+      );
+    });
   }
 
   @override
@@ -88,39 +107,30 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: PageView.builder(
                 controller: controller,
                 itemCount: pages.length,
-                onPageChanged: (value) => setState(() => page = value),
+                onPageChanged: (value) {
+                  setState(() => page = value);
+                  _startAutoSlide();
+                },
                 itemBuilder: (context, index) =>
                     _OnboardingPage(data: pages[index]),
               ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
-              child: Column(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      for (var i = 0; i < pages.length; i++)
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
-                          width: page == i ? 28 : 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: page == i ? AppColors.green : AppColors.line,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  PrimaryButton(
-                    label: page == pages.length - 1
-                        ? 'Start my journey'
-                        : 'Continue',
-                    icon: Icons.arrow_forward_rounded,
-                    onPressed: advance,
-                  ),
+                  for (var i = 0; i < pages.length; i++)
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      width: page == i ? 28 : 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: page == i ? AppColors.green : AppColors.line,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
                 ],
               ),
             ),

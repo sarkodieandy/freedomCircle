@@ -101,6 +101,19 @@ class AuthFlowController {
     }
   }
 
+  Future<void> resendOtp({required String emailOrPhone}) async {
+    final target = emailOrPhone.trim();
+    if (target.isEmpty) {
+      throw const AuthFlowException('Add an email or phone to resend OTP.');
+    }
+
+    try {
+      await authRepository.sendOtp(emailOrPhone: target);
+    } on AppException catch (error) {
+      throw AuthFlowException(error.message);
+    }
+  }
+
   Future<void> signOut() async {
     try {
       await authRepository.signOut();

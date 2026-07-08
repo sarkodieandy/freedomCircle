@@ -1,90 +1,76 @@
-import '../models/payment.dart';
-import '../models/subscription.dart';
-import '../models/monetization_models.dart';
+import '../../core/errors/app_exception.dart';
+import '../../core/services/revenuecat_service.dart';
+import '../models/revenuecat_models.dart';
+import '../supabase/supabase_service.dart';
 import 'supabase_repository.dart';
 
 class SubscriptionRepository extends SupabaseRepository {
   const SubscriptionRepository({super.supabaseClient});
 
-  Future<UserSubscription?> getCurrentSubscription(String userId) =>
-      currentStatus(userId);
-
-  Future<UserSubscription?> currentStatus(String userId) {
-    return guard(() async {
-      final row = await client
-          .from('user_subscription_status')
-          .select()
-          .eq('user_id', userId)
-          .maybeSingle();
-      return row == null ? null : UserSubscription.fromMap(mapRow(row));
-    });
+  Future<List<AppSubscriptionPackage>> getAvailablePackages() async {
+    final offerings = await RevenueCatService.instance.getOfferings();
+    if (offerings.error != null) {
+      throw ValidationException(offerings.error!);
+    }
+    return offerings.packages;
   }
 
-  Future<List<Payment>> payments(String userId) {
-    return guard(() async {
-      final rows = await client
-          .from('payments')
-          .select()
-          .eq('user_id', userId)
-          .order('created_at', ascending: false);
-      return mapRows(rows, Payment.fromMap);
-    });
+  Future<CustomerPremiumStatus> getCustomerStatus() {
+    return RevenueCatService.instance.getCustomerStatus();
   }
 
-  Future<List<Payment>> getPaymentHistory(String userId) => payments(userId);
-
-  Future<Payment> createPendingPayment(Map<String, dynamic> values) {
-    return guard(() async {
-      final row = await client
-          .from('payments')
-          .insert(values)
-          .select()
-          .single();
-      return Payment.fromMap(mapRow(row));
-    });
+  Future<bool> isPremium() {
+    return RevenueCatService.instance.isPremium();
   }
 
-  Future<List<MonetizationPlan>> getAvailablePlans({String? planType}) {
+  Future<PurchaseResult> purchasePackage(AppSubscriptionPackage package) async {
+    await RevenueCatService.instance.getOfferings();
+    final result = await RevenueCatService.instance.purchasePackage(package);
+    if (result.success) {
+      await syncPremiumStatusToSupabase();
+    }
+    return result;
+  }
+
+  Future<PurchaseResult> restorePurchases() async {
+    final result = await RevenueCatService.instance.restorePurchases();
+    if (result.success) {
+      await syncPremiumStatusToSupabase();
+    }
+    return result;
+  }
+
+  Future<void> syncPremiumStatusToSupabase() {
     return guard(() async {
-      var query = client
-          .from('plans')
-          .select('*, plan_features(*)')
-          .eq('is_active', true);
-      if (planType != null) {
-        query = query.eq('plan_type', planType);
+      final status = await RevenueCatService.instance.getCustomerStatus();
+      final userId = SupabaseService.currentUserId;
+      if (userId == null) {
+        throw const AuthException(
+          'Sign in before syncing subscription status.',
+        );
       }
-      final rows = await query.order('sort_order');
-      return mapRows(rows, MonetizationPlan.fromMap);
+
+      try {
+        await client.from('revenuecat_customers').upsert({
+          'user_id': userId,
+          'revenuecat_app_user_id': userId,
+          'original_app_user_id': status.originalAppUserId,
+          'management_url': status.managementUrl,
+          'latest_customer_info': status.toMap(),
+          'is_premium': status.isPremium,
+          'latest_expiration_at': status.latestExpirationDate
+              ?.toIso8601String(),
+          'last_synced_at': DateTime.now().toIso8601String(),
+          'updated_at': DateTime.now().toIso8601String(),
+        }, onConflict: 'user_id');
+      } catch (_) {
+        // Client-side sync is best-effort; authoritative entitlements come from
+        // webhook verification on server-side infrastructure.
+      }
     });
   }
 
-  Future<List<PlanFeature>> getPlanFeatures(String planId) {
-    return guard(() async {
-      final rows = await client
-          .from('plan_features')
-          .select()
-          .eq('plan_id', planId)
-          .order('feature_key');
-      return mapRows(rows, PlanFeature.fromMap);
-    });
-  }
-
-  Future<List<Map<String, dynamic>>> getUserEntitlements(String userId) {
-    return guard(() async {
-      final rows = await client
-          .from('entitlements')
-          .select()
-          .eq('subject_user_id', userId)
-          .order('created_at', ascending: false);
-      return (rows as List).map((item) => mapRow(item)).toList();
-    });
-  }
-
-  Future<void> restorePurchasesPlaceholder() async {
-    // TODO(mobile-iap): integrate with App Store / Google Play restore flows.
-  }
-
-  Future<void> startUpgradeFlowPlaceholder({String? planCode}) async {
-    // TODO(server): call Laravel/Paystack or native IAP flow and verify server-side.
+  Stream<CustomerPremiumStatus> watchPremiumStatus() {
+    return RevenueCatService.instance.premiumStatusStream;
   }
 }

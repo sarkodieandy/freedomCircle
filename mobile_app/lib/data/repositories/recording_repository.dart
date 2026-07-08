@@ -1,7 +1,8 @@
 import 'dart:io';
 
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthException;
 
+import '../../core/errors/app_exception.dart';
 import '../models/chat_recording.dart';
 import '../supabase/supabase_service.dart';
 import 'supabase_repository.dart';
@@ -18,9 +19,7 @@ class RecordingRepository extends SupabaseRepository {
   }) {
     final userId = _userId;
     if (userId == null) {
-      throw const SupabaseRepositoryException(
-        'Sign in before uploading audio.',
-      );
+      throw const AuthException('Sign in before uploading audio.');
     }
 
     return guard(() async {
@@ -58,7 +57,7 @@ class RecordingRepository extends SupabaseRepository {
   }) {
     final userId = _userId;
     if (userId == null) {
-      throw const SupabaseRepositoryException('Sign in before saving audio.');
+      throw const AuthException('Sign in before saving audio.');
     }
 
     return guard(() async {

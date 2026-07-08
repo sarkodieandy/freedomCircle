@@ -65,6 +65,29 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
     });
   }
 
+  Future<void> _resend() async {
+    if (secondsLeft != 0) return;
+    final target = widget.emailOrPhone?.trim();
+    if (target == null || target.isEmpty) {
+      _startTimer();
+      return;
+    }
+
+    setState(() => errorMessage = null);
+    try {
+      await authController.resendOtp(emailOrPhone: target);
+      if (!mounted) return;
+      _startTimer();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('A fresh OTP code has been sent.')),
+      );
+    } on AuthFlowException catch (error) {
+      if (!mounted) return;
+      setState(() => errorMessage = error.message);
+      shakeController.forward(from: 0);
+    }
+  }
+
   Future<void> _verify() async {
     if (loading) return;
     setState(() {
@@ -154,7 +177,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
                       ),
                     ),
                     TextButton(
-                      onPressed: secondsLeft == 0 ? _startTimer : null,
+                      onPressed: secondsLeft == 0 ? () => _resend() : null,
                       child: const Text('Resend'),
                     ),
                   ],
