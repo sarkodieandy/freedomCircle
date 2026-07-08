@@ -59,6 +59,8 @@ Direct Supabase calls from UI should be removed progressively.
 - Check-ins: `daily_checkins`, `group_checkins`
 - Prayer: `prayer_requests`, `prayer_interactions`
 - Groups: `groups`, `group_members`, `group_messages`, `group_resources`
+- Chat: `chat_conversations`, `chat_participants`, `chat_messages`,
+  `chat_message_reads`, `chat_message_reactions`, `chat_recordings`
 - Community: `community_posts`, `post_comments`, `post_reactions`
 - Helpers/Support: `helpers`, `helper_availability`, `support_requests`
 - Booking/Payments: `coach_bookings`, `payments`
@@ -72,10 +74,14 @@ Direct Supabase calls from UI should be removed progressively.
 
 - Implemented streams:
   - `group_messages`
+  - `chat_messages`
+  - `chat_message_reads`
+  - `chat_message_reactions`
+  - `chat_participants`
   - `notifications`
-- Placeholder streams (to migrate to Presence/Broadcast):
-  - typing events
-  - group presence
+- Broadcast/Presence channels:
+  - `chat:{conversation_id}` typing and recording composer events
+  - conversation presence for online indicators
 
 Never expose private journals, private recovery logs, or private check-ins over shared realtime channels.
 
@@ -90,8 +96,15 @@ Bucket intent:
 - `journal-attachments`
 - `helper-documents`
 - `app-content`
+- `chat-voice-notes` private voice-note storage
+- `chat-attachments` private file storage
+- `chat-images` private image storage
 
 Current upload helper exists for avatar upload in `ProfileRepository.uploadAvatar`.
+
+Chat storage paths use `conversation_id/user_id/file_name` so RLS can verify
+both participant access and owner uploads. Signed URL generation belongs in
+`supabase/functions/generate-storage-signed-url`, not Flutter service-role code.
 
 ## Payments and Verification
 
@@ -119,6 +132,8 @@ Rules:
 13. Notifications read/realtime
 14. Report and block user workflows
 15. Logout
+16. Group/private/support chat send, read receipt, reaction, and voice metadata
+17. Private chat bucket read/write with non-participant denial
 
 RLS must enforce:
 

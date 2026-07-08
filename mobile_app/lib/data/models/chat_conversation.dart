@@ -25,7 +25,8 @@ class ChatConversation {
   final String? createdBy;
   final DateTime? updatedAt;
 
-  bool get isGroup => conversationType == 'group' || conversationType == 'prayer_group';
+  bool get isGroup =>
+      conversationType == 'group' || conversationType == 'prayer_group';
   bool get isSupport => conversationType == 'support_request';
   bool get isPrivate => conversationType == 'helper_private';
 

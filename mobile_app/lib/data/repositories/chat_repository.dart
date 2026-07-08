@@ -31,7 +31,9 @@ class ChatRepository extends SupabaseRepository {
     return _conversation(id);
   }
 
-  Future<ChatConversation> getOrCreatePrayerGroupConversation(String groupId) async {
+  Future<ChatConversation> getOrCreatePrayerGroupConversation(
+    String groupId,
+  ) async {
     final id = await _rpcString('get_or_create_group_chat', {
       'group_uuid': groupId,
       'conversation_kind': 'prayer_group',
@@ -39,7 +41,9 @@ class ChatRepository extends SupabaseRepository {
     return _conversation(id);
   }
 
-  Future<ChatConversation> getOrCreatePrivateConversation(String otherUserId) async {
+  Future<ChatConversation> getOrCreatePrivateConversation(
+    String otherUserId,
+  ) async {
     final id = await _rpcString('get_or_create_private_chat', {
       'other_user_uuid': otherUserId,
     });
@@ -156,10 +160,10 @@ class ChatRepository extends SupabaseRepository {
 
   Future<void> hideMessageAsModerator(String messageId) {
     return guard(() async {
-      await client.from('chat_messages').update({'status': 'hidden'}).eq(
-            'id',
-            messageId,
-          );
+      await client
+          .from('chat_messages')
+          .update({'status': 'hidden'})
+          .eq('id', messageId);
     });
   }
 
@@ -251,14 +255,16 @@ class ChatRepository extends SupabaseRepository {
 
   Future<void> sendTypingBroadcast(String conversationId, bool isTyping) async {
     if (!SupabaseService.isInitialized || _userId == null) return;
-    await client.channel('chat:$conversationId').sendBroadcastMessage(
-      event: 'typing',
-      payload: {
-        'user_id': _userId,
-        'is_typing': isTyping,
-        'sent_at': DateTime.now().toIso8601String(),
-      },
-    );
+    await client
+        .channel('chat:$conversationId')
+        .sendBroadcastMessage(
+          event: 'typing',
+          payload: {
+            'user_id': _userId,
+            'is_typing': isTyping,
+            'sent_at': DateTime.now().toIso8601String(),
+          },
+        );
   }
 
   Future<ChatConversation> _conversation(String conversationId) {

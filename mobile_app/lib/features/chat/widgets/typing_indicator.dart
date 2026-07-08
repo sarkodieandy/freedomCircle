@@ -44,10 +44,7 @@ class _Dot extends StatelessWidget {
       curve: Curves.easeInOut,
       builder: (context, value, child) => Opacity(
         opacity: value,
-        child: Transform.translate(
-          offset: Offset(0, -2 * value),
-          child: child,
-        ),
+        child: Transform.translate(offset: Offset(0, -2 * value), child: child),
       ),
       child: Container(
         width: 5,

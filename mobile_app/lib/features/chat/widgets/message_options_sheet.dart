@@ -27,7 +27,10 @@ Future<void> showMessageOptionsSheet({
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Message actions', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'Message actions',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 8),
             MessageReactionBar(
               messageId: message.id,

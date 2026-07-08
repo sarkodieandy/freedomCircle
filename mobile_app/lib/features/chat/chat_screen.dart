@@ -53,7 +53,8 @@ class _ChatScreenState extends State<ChatScreen> {
   Timer? _typingTimer;
   String _typingLabel = '';
 
-  String? get _conversationId => widget.conversation?.id ?? widget.conversationId;
+  String? get _conversationId =>
+      widget.conversation?.id ?? widget.conversationId;
 
   @override
   void initState() {
@@ -92,14 +93,16 @@ class _ChatScreenState extends State<ChatScreen> {
           child: Padding(
             padding: EdgeInsets.all(20),
             child: ChatErrorState(
-              message: 'Open a group, helper, or support request to start chat.',
+              message:
+                  'Open a group, helper, or support request to start chat.',
             ),
           ),
         ),
       );
     }
 
-    final title = widget.title ??
+    final title =
+        widget.title ??
         widget.conversation?.title ??
         _conversationTitle(widget.conversation?.conversationType);
 
@@ -167,10 +170,8 @@ class _ChatScreenState extends State<ChatScreen> {
                               message: message,
                               isMine: isMine,
                               onPlay: () => _playVoice(message),
-                              onLongPress: () => _showMessageActions(
-                                message,
-                                isMine,
-                              ),
+                              onLongPress: () =>
+                                  _showMessageActions(message, isMine),
                             )
                           : ChatMessageBubble(
                               message: message,
@@ -178,10 +179,8 @@ class _ChatScreenState extends State<ChatScreen> {
                               onReply: () => _chatController.setReply(message),
                               onReaction: (reaction) =>
                                   _react(message, reaction),
-                              onLongPress: () => _showMessageActions(
-                                message,
-                                isMine,
-                              ),
+                              onLongPress: () =>
+                                  _showMessageActions(message, isMine),
                             ),
                     );
                   },
@@ -190,7 +189,10 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
           AnimatedBuilder(
-            animation: Listenable.merge([_chatController, _recordingController]),
+            animation: Listenable.merge([
+              _chatController,
+              _recordingController,
+            ]),
             builder: (context, _) => ChatInputBar(
               onSend: _chatController.sendText,
               onRecordPressed: _handleRecordPressed,
@@ -199,8 +201,9 @@ class _ChatScreenState extends State<ChatScreen> {
               onCancelReply: () => _chatController.setReply(null),
               isRecording: _recordingController.state.isRecording,
               isAnonymous: _chatController.isAnonymous,
-              onAnonymousChanged:
-                  widget.allowAnonymous ? _chatController.setAnonymous : null,
+              onAnonymousChanged: widget.allowAnonymous
+                  ? _chatController.setAnonymous
+                  : null,
             ),
           ),
         ],
@@ -235,7 +238,8 @@ class _ChatScreenState extends State<ChatScreen> {
       if (!mounted) return;
       if (state.localFilePath == null) {
         _showSnack(
-          state.error ?? 'Voice recording is ready for the native recorder package.',
+          state.error ??
+              'Voice recording is ready for the native recorder package.',
         );
         return;
       }
@@ -285,8 +289,9 @@ class _ChatScreenState extends State<ChatScreen> {
       onReport: () => _report(message),
       onEdit: isMine ? () => _edit(message) : null,
       onDelete: isMine ? () => _delete(message) : null,
-      onHide:
-          widget.showModeratorActions ? () => _hideAsModerator(message) : null,
+      onHide: widget.showModeratorActions
+          ? () => _hideAsModerator(message)
+          : null,
       onBlockUser: message.senderId == null
           ? null
           : () => _repository.blockUser(message.senderId!),
@@ -347,7 +352,10 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  void _markConversationRead(String conversationId, List<ChatMessage> messages) {
+  void _markConversationRead(
+    String conversationId,
+    List<ChatMessage> messages,
+  ) {
     if (messages.isEmpty) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _repository.markConversationRead(conversationId);

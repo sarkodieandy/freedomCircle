@@ -7,7 +7,8 @@ class ChatEmptyState extends StatelessWidget {
   const ChatEmptyState({
     super.key,
     this.title = 'No messages yet',
-    this.body = 'Start with a short, honest message. This space is built for privacy and grace.',
+    this.body =
+        'Start with a short, honest message. This space is built for privacy and grace.',
   });
 
   final String title;

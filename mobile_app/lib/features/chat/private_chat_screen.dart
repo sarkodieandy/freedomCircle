@@ -40,7 +40,8 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
           child: Padding(
             padding: EdgeInsets.all(20),
             child: ChatErrorState(
-              message: 'This helper needs a linked user ID before chat can open.',
+              message:
+                  'This helper needs a linked user ID before chat can open.',
             ),
           ),
         ),

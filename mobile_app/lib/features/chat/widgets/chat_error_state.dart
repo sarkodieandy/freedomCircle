@@ -4,11 +4,7 @@ import '../../../app/constants.dart';
 import '../../../core/widgets/app_card.dart';
 
 class ChatErrorState extends StatelessWidget {
-  const ChatErrorState({
-    super.key,
-    required this.message,
-    this.onRetry,
-  });
+  const ChatErrorState({super.key, required this.message, this.onRetry});
 
   final String message;
   final VoidCallback? onRetry;

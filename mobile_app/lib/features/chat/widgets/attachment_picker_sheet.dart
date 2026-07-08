@@ -19,7 +19,9 @@ void showAttachmentPickerSheet(BuildContext context) {
             ListTile(
               leading: const Icon(Icons.attach_file_rounded),
               title: const Text('File'),
-              subtitle: const Text('Uploads to private chat-attachments storage'),
+              subtitle: const Text(
+                'Uploads to private chat-attachments storage',
+              ),
               onTap: () => Navigator.pop(context),
             ),
           ],

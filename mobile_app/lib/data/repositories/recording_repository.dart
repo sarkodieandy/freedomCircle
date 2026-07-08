@@ -18,14 +18,18 @@ class RecordingRepository extends SupabaseRepository {
   }) {
     final userId = _userId;
     if (userId == null) {
-      throw const SupabaseRepositoryException('Sign in before uploading audio.');
+      throw const SupabaseRepositoryException(
+        'Sign in before uploading audio.',
+      );
     }
 
     return guard(() async {
       final extension = _extensionFor(mimeType);
       final path =
           '$conversationId/$userId/${DateTime.now().millisecondsSinceEpoch}.$extension';
-      await client.storage.from('chat-voice-notes').upload(
+      await client.storage
+          .from('chat-voice-notes')
+          .upload(
             path,
             File(localFilePath),
             fileOptions: FileOptions(contentType: mimeType, upsert: false),

@@ -28,7 +28,9 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
   void initState() {
     super.initState();
     if (widget.supportRequestId.isNotEmpty) {
-      _future = _repository.getOrCreateSupportConversation(widget.supportRequestId);
+      _future = _repository.getOrCreateSupportConversation(
+        widget.supportRequestId,
+      );
     }
   }
 
@@ -40,7 +42,8 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
           child: Padding(
             padding: EdgeInsets.all(20),
             child: ChatErrorState(
-              message: 'This support request needs a backend ID before chat can open.',
+              message:
+                  'This support request needs a backend ID before chat can open.',
             ),
           ),
         ),

@@ -14,7 +14,11 @@ Implemented motion and UI/UX requirements:
 - Check-in success animation: `features/checkin/daily_check_in_sheet.dart`
 - Prayer request submit success animation: `features/prayer/prayer_wall_screen.dart`
 - Badge unlock animation: `features/recovery/recovery_tracker_screen.dart`
-- Chat message fade/slide: `features/groups/group_detail_screen.dart`
+- Chat message fade/slide: `features/chat/chat_screen.dart`
+- Chat typing indicator animated dots: `features/chat/widgets/typing_indicator.dart`
+- Chat voice-note record button scale state:
+  `features/chat/widgets/recording_button.dart`
+- Chat waveform display: `features/chat/widgets/audio_waveform_view.dart`
 - Subscription plan selection animation: `features/subscriptions/subscription_screen.dart`
 - Booking success animation: `features/helpers/booking_screen.dart`
 - Auth input focus animation: `features/auth/auth_screen.dart`

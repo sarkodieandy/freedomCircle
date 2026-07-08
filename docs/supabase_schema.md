@@ -17,7 +17,10 @@ Core tables:
   spiritual discipline and check-in tracking.
 - `groups`: accountability, church, premium, and private groups.
 - `group_members`: membership role and approval status.
-- `group_messages`: realtime chat messages with anonymous mode.
+- `group_messages`: legacy group chat messages with anonymous mode.
+- `chat_conversations`, `chat_participants`, `chat_messages`,
+  `chat_message_reads`, `chat_message_reactions`, and `chat_recordings`: unified
+  group, prayer group, helper private, support request, and admin support chat.
 - `group_prayer_requests`, `group_checkins`, `group_resources`: group prayer
   wall, accountability check-ins, and shared resources.
 - `community_posts`: moderated support wall posts.
@@ -48,6 +51,8 @@ Core tables:
 Supabase Realtime targets:
 
 - `group_messages` for live chat.
+- `chat_messages`, `chat_message_reads`, `chat_message_reactions`, and
+  `chat_participants` for unified chat.
 - `group_members` for online/presence metadata.
 - `notifications` for the signed-in user's live inbox and unread badge.
 - `prayer_requests` and `community_posts` for moderated live updates after approval.
@@ -59,6 +64,9 @@ Laravel admin connection:
 - The admin panel should manage reports, helpers, groups, posts, prayer requests,
   subscriptions, payments, notification templates, delivery logs, and system or
   church announcements.
+- Chat moderation should use server-side service-role code such as
+  `admin_panel/app/Services/ChatModerationService.php` for hiding messages,
+  deleting recordings, participant status changes, and storage cleanup jobs.
 
 Client read views:
 

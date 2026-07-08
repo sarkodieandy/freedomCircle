@@ -43,6 +43,11 @@ Realtime is enabled for:
 
 - `group_messages`
 - `group_members`
+- `chat_conversations`
+- `chat_participants`
+- `chat_messages`
+- `chat_message_reads`
+- `chat_message_reactions`
 - `notifications`
 - `prayer_interactions`
 - `community_posts`
@@ -60,6 +65,12 @@ user's `notifications` rows. Push delivery is handled by Edge Functions:
   FCM/APNs environment variables, and writes delivery logs.
 - `process-notification`: accepts a notification id or database-webhook record
   payload and invokes push delivery when the template allows it.
+- `create-chat-notification`: creates safe chat notifications for conversation
+  participants when invoked by a database webhook or service job.
+- `generate-storage-signed-url`: verifies the signed-in user is a chat
+  participant before returning a private chat storage signed URL.
+- `cleanup-deleted-chat-files`: removes files for hidden/deleted chat messages
+  and recordings from private chat buckets.
 
 Do not place FCM/APNs private keys in Flutter. Use Supabase Edge Function
 secrets or Laravel environment variables only.
@@ -75,6 +86,9 @@ Configured buckets:
 - `journal-attachments`: owner-only.
 - `helper-documents`: helper owner or admin only.
 - `app-content`: public read, admin write.
+- `chat-voice-notes`: private, participant-read voice notes.
+- `chat-attachments`: private, participant-read files.
+- `chat-images`: private, participant-read images.
 
 ## Security Notes
 

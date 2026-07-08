@@ -14,7 +14,11 @@ This checklist maps the product prompt to the implemented Flutter files.
 - Recovery Tracker: `mobile_app/lib/features/recovery/recovery_tracker_screen.dart`
 - Accountability Groups: `mobile_app/lib/features/groups/groups_screen.dart`
 - Group Detail: `mobile_app/lib/features/groups/group_detail_screen.dart`
-- Group Chat: `mobile_app/lib/features/chat/chat_screen.dart`
+- Chat List: `mobile_app/lib/features/chat/chat_list_screen.dart`
+- Shared Chat Screen: `mobile_app/lib/features/chat/chat_screen.dart`
+- Group Chat: `mobile_app/lib/features/chat/group_chat_screen.dart`
+- Helper/Coach Private Chat: `mobile_app/lib/features/chat/private_chat_screen.dart`
+- Support Request Chat: `mobile_app/lib/features/chat/support_chat_screen.dart`
 - Community Wall: `mobile_app/lib/features/community/community_wall_screen.dart`
 - Prayer Wall: `mobile_app/lib/features/prayer/prayer_wall_screen.dart`
 - Helper/Coach Directory: `mobile_app/lib/features/helpers/coach_directory_screen.dart`
@@ -33,8 +37,8 @@ Navigation coverage:
 
 - Main bottom navigation includes Home, Groups, Community, Prayer, and Profile.
 - Home links to Recovery, Prayer, Groups, Journal, Helpers, Search, Subscription, Notifications, and state previews.
-- Group Detail links to full Chat.
-- Helper Profile links to Booking.
+- Group Detail links to full group Chat when the group has a backend ID.
+- Helper Profile links to private helper Chat and Booking.
 - Profile links to Goals/Recovery, Groups, Helper, Subscription, Settings, Notifications, and Safety.
 
 Backend/admin coverage:
@@ -42,5 +46,11 @@ Backend/admin coverage:
 - Supabase-ready data models live in `mobile_app/lib/data/models/`.
 - Repository boundary lives in `mobile_app/lib/data/repositories/freedom_repository.dart`.
 - Supabase service boundary lives in `mobile_app/lib/data/supabase/supabase_service.dart`.
-- SQL schema migration lives in `supabase/migrations/20260707000000_initial_freedomcircle_schema.sql`.
+- Unified chat SQL schema lives in `supabase/migrations/0016_chat_system.sql`.
+- Chat repositories live in `mobile_app/lib/data/repositories/chat_repository.dart`
+  and `mobile_app/lib/data/repositories/recording_repository.dart`.
+- Chat controllers, services, and widgets live under
+  `mobile_app/lib/features/chat/controllers`,
+  `mobile_app/lib/features/chat/services`, and
+  `mobile_app/lib/features/chat/widgets`.
 - Laravel admin notes live in `admin_panel/README.md`.

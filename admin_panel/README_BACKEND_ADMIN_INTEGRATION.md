@@ -21,6 +21,8 @@ Implement/administer modules for:
 - Users and profiles
 - Groups and group moderation
 - Group messages moderation
+- Unified chat moderation for group, prayer, helper private, and support request
+  conversations
 - Community posts/comments moderation
 - Prayer requests moderation
 - Helpers/coaches verification
@@ -30,6 +32,12 @@ Implement/administer modules for:
 - Paid programs and content
 - Quiet Time categories/sessions/steps
 - Audit logs
+
+Chat service entry point:
+
+- `app/Services/ChatModerationService.php` handles conversation listing,
+  message hiding/restoring, recording soft-deletion, participant status changes,
+  support conversation creation, and deleted-file cleanup invocation.
 
 ## Payment Rules
 

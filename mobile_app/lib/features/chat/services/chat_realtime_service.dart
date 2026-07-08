@@ -24,7 +24,10 @@ class ChatRealtimeService {
     return _typingController!.stream;
   }
 
-  Future<void> sendTyping({required String userId, required bool isTyping}) async {
+  Future<void> sendTyping({
+    required String userId,
+    required bool isTyping,
+  }) async {
     if (!SupabaseService.isInitialized) return;
     _channel ??= SupabaseService.client.channel('chat:$conversationId')
       ..subscribe();

@@ -4,7 +4,11 @@ import '../../../app/constants.dart';
 import '../../../data/models/chat_message.dart';
 
 class ReplyPreview extends StatelessWidget {
-  const ReplyPreview({super.key, required this.message, required this.onCancel});
+  const ReplyPreview({
+    super.key,
+    required this.message,
+    required this.onCancel,
+  });
 
   final ChatMessage message;
   final VoidCallback onCancel;
