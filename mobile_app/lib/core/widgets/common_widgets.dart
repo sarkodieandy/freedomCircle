@@ -71,6 +71,7 @@ class SelectableOption extends StatelessWidget {
     required this.selected,
     required this.accent,
     required this.onTap,
+    this.iconUrl,
   });
 
   final String label;
@@ -78,6 +79,7 @@ class SelectableOption extends StatelessWidget {
   final bool selected;
   final Color accent;
   final VoidCallback onTap;
+  final String? iconUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -97,10 +99,24 @@ class SelectableOption extends StatelessWidget {
           width: 42,
           height: 42,
           decoration: BoxDecoration(
-            color: accent.withValues(alpha: .14),
+            color: iconUrl == null
+                ? accent.withValues(alpha: .14)
+                : AppColors.background,
             borderRadius: BorderRadius.circular(14),
+            border: iconUrl == null
+                ? null
+                : Border.all(color: AppColors.line, width: 1),
           ),
-          child: Icon(icon, color: accent),
+          child: iconUrl == null
+              ? Icon(icon, color: accent)
+              : ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    iconUrl!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Icon(icon, color: accent),
+                  ),
+                ),
         ),
         title: Text(label, style: Theme.of(context).textTheme.titleMedium),
         trailing: Icon(

@@ -186,6 +186,6 @@ class _ConversationTile extends StatelessWidget {
     final updated = conversation.updatedAt ?? conversation.createdAt;
     final hour = updated.hour.toString().padLeft(2, '0');
     final minute = updated.minute.toString().padLeft(2, '0');
-    return '${conversation.status} • last active $hour:$minute';
+    return '${conversation.status} - last active $hour:$minute';
   }
 }

@@ -24,6 +24,14 @@ class ScreenShell extends StatelessWidget {
       appBar: withBack
           ? AppBar(
               title: Text(title),
+              actions: trailing == null
+                  ? null
+                  : [
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: trailing!,
+                      ),
+                    ],
               leading: IconButton(
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.arrow_back_rounded),

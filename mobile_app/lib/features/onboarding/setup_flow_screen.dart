@@ -149,6 +149,7 @@ class _SetupFlowScreenState extends State<SetupFlowScreen> {
             child: SelectableOption(
               label: MockDataService.focusOptions[i].title,
               icon: MockDataService.focusOptions[i].icon,
+              iconUrl: MockDataService.focusOptions[i].iconUrl,
               selected: focus == i,
               accent: MockDataService.focusOptions[i].color,
               onTap: () => setState(() => focus = i),
