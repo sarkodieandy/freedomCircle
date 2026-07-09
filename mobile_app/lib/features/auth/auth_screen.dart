@@ -15,6 +15,8 @@ import 'otp_verification_screen.dart';
 
 enum AuthMode { login, signup }
 
+enum _AvatarPickAction { gallery, camera, remove }
+
 class AuthScreen extends StatefulWidget {
   const AuthScreen({
     super.key,
@@ -147,7 +149,7 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _showAvatarSourcePicker() async {
-    final source = await showModalBottomSheet<ImageSource>(
+    final action = await showModalBottomSheet<_AvatarPickAction>(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
@@ -182,19 +184,20 @@ class _AuthScreenState extends State<AuthScreen> {
                 ListTile(
                   leading: const Icon(Icons.photo_library_outlined),
                   title: const Text('Photo library'),
-                  onTap: () => Navigator.pop(context, ImageSource.gallery),
+                  onTap: () =>
+                      Navigator.pop(context, _AvatarPickAction.gallery),
                 ),
                 ListTile(
                   leading: const Icon(Icons.photo_camera_outlined),
                   title: const Text('Camera'),
-                  onTap: () => Navigator.pop(context, ImageSource.camera),
+                  onTap: () => Navigator.pop(context, _AvatarPickAction.camera),
                 ),
                 if (avatarBytes != null)
                   ListTile(
                     leading: const Icon(Icons.delete_outline_rounded),
                     title: const Text('Remove photo'),
                     onTap: () =>
-                        Navigator.pop(context, ImageSource.values.first),
+                        Navigator.pop(context, _AvatarPickAction.remove),
                   ),
               ],
             ),
@@ -203,11 +206,14 @@ class _AuthScreenState extends State<AuthScreen> {
       },
     );
 
-    if (!mounted || source == null) return;
-    if (avatarBytes != null && source == ImageSource.values.first) {
+    if (!mounted || action == null) return;
+    if (action == _AvatarPickAction.remove) {
       setState(() => avatarBytes = null);
       return;
     }
+    final source = action == _AvatarPickAction.camera
+        ? ImageSource.camera
+        : ImageSource.gallery;
     await _pickAvatar(source);
   }
 
