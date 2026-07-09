@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../app/constants.dart';
 import '../../app/images.dart';
@@ -28,6 +31,7 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   final controller = const AuthFlowController();
+  final imagePicker = ImagePicker();
   final fullNameController = TextEditingController();
   final usernameController = TextEditingController();
   final emailController = TextEditingController();
@@ -38,7 +42,9 @@ class _AuthScreenState extends State<AuthScreen> {
   late AuthMode mode;
   bool acceptedTerms = false;
   bool loading = false;
+  bool pickingAvatar = false;
   String? errorMessage;
+  Uint8List? avatarBytes;
 
   bool get isLogin => mode == AuthMode.login;
 
@@ -96,6 +102,7 @@ class _AuthScreenState extends State<AuthScreen> {
           email: emailController.text,
           password: passwordController.text,
           confirmPassword: confirmPasswordController.text,
+          avatarBytes: avatarBytes,
           phone: phone,
           acceptedTerms: acceptedTerms,
         );
@@ -137,6 +144,93 @@ class _AuthScreenState extends State<AuthScreen> {
     AppLogger.navigation('Auth complete, redirecting to app shell');
     Navigator.of(context).popUntil((route) => route.isFirst);
     widget.onAuthenticated();
+  }
+
+  Future<void> _showAvatarSourcePicker() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.line,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  'Choose profile photo',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Use your camera or pick one from your device.',
+                  style: AppTextStyles.body,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 14),
+                ListTile(
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: const Text('Photo library'),
+                  onTap: () => Navigator.pop(context, ImageSource.gallery),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_camera_outlined),
+                  title: const Text('Camera'),
+                  onTap: () => Navigator.pop(context, ImageSource.camera),
+                ),
+                if (avatarBytes != null)
+                  ListTile(
+                    leading: const Icon(Icons.delete_outline_rounded),
+                    title: const Text('Remove photo'),
+                    onTap: () => Navigator.pop(context, ImageSource.values.first),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (!mounted || source == null) return;
+    if (avatarBytes != null && source == ImageSource.values.first) {
+      setState(() => avatarBytes = null);
+      return;
+    }
+    await _pickAvatar(source);
+  }
+
+  Future<void> _pickAvatar(ImageSource source) async {
+    if (pickingAvatar) return;
+    setState(() => pickingAvatar = true);
+    try {
+      final file = await imagePicker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 1400,
+      );
+      if (file == null) return;
+      final bytes = await file.readAsBytes();
+      if (!mounted) return;
+      setState(() => avatarBytes = bytes);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => errorMessage = 'Could not select photo. Try again.');
+    } finally {
+      if (mounted) {
+        setState(() => pickingAvatar = false);
+      }
+    }
   }
 
   @override
@@ -233,6 +327,12 @@ class _AuthScreenState extends State<AuthScreen> {
     return Column(
       key: const ValueKey('signup-fields'),
       children: [
+        _ProfilePhotoPicker(
+          imageBytes: avatarBytes,
+          onTap: _showAvatarSourcePicker,
+          loading: pickingAvatar,
+        ),
+        const SizedBox(height: 14),
         AuthTextField(
           controller: fullNameController,
           label: 'Full name',
@@ -304,6 +404,88 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ProfilePhotoPicker extends StatelessWidget {
+  const _ProfilePhotoPicker({
+    required this.imageBytes,
+    required this.onTap,
+    required this.loading,
+  });
+
+  final Uint8List? imageBytes;
+  final VoidCallback onTap;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: loading ? null : onTap,
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: Ink(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(color: AppColors.line),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.softGreen.withValues(alpha: .58),
+              AppColors.card,
+            ],
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 70,
+              height: 70,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.green.withValues(alpha: .18)),
+                color: AppColors.softGreen,
+              ),
+              child: ClipOval(
+                child: imageBytes != null
+                    ? Image.memory(imageBytes!, fit: BoxFit.cover)
+                    : const Icon(Icons.add_a_photo_outlined, color: AppColors.green),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Profile photo', style: Theme.of(context).textTheme.titleSmall),
+                  const SizedBox(height: 4),
+                  Text(
+                    imageBytes == null
+                        ? 'Choose a photo from your device to personalize your account.'
+                        : 'Tap to change or remove your selected photo.',
+                    style: AppTextStyles.caption,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            loading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Icon(
+                    imageBytes == null
+                        ? Icons.chevron_right_rounded
+                        : Icons.edit_outlined,
+                    color: AppColors.green,
+                  ),
+          ],
+        ),
+      ),
     );
   }
 }

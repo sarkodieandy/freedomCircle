@@ -1,6 +1,7 @@
 import '../../core/errors/app_exception.dart';
 import '../../core/utils/app_logger.dart';
 import '../../data/repositories/auth_repository.dart';
+import '../../data/repositories/profile_repository.dart';
 
 class AuthFlowException implements Exception {
   const AuthFlowException(this.message);
@@ -12,9 +13,13 @@ class AuthFlowException implements Exception {
 }
 
 class AuthFlowController {
-  const AuthFlowController({this.authRepository = const AuthRepository()});
+  const AuthFlowController({
+    this.authRepository = const AuthRepository(),
+    this.profileRepository = const ProfileRepository(),
+  });
 
   final AuthRepository authRepository;
+  final ProfileRepository profileRepository;
 
   Future<void> signInWithEmail({
     required String email,
@@ -70,6 +75,7 @@ class AuthFlowController {
     required String email,
     required String password,
     required String confirmPassword,
+    List<int>? avatarBytes,
     String? phone,
     required bool acceptedTerms,
   }) async {
@@ -141,13 +147,31 @@ class AuthFlowController {
     }
 
     try {
-      await authRepository.signUpWithEmail(
+      final authResponse = await authRepository.signUpWithEmail(
         fullName: fullName.trim(),
         username: username.trim(),
         email: email.trim(),
         password: password,
         phone: normalizedPhone,
       );
+
+      final user = authResponse.user ?? authRepository.currentUser;
+      if (user != null) {
+        String? avatarUrl;
+        if (avatarBytes != null && avatarBytes.isNotEmpty) {
+          avatarUrl = await profileRepository.uploadAvatar(
+            userId: user.id,
+            bytes: avatarBytes,
+          );
+        }
+
+        await profileRepository.upsertProfile({
+          'user_id': user.id,
+          'full_name': fullName.trim(),
+          'username': username.trim(),
+          if (avatarUrl != null && avatarUrl.isNotEmpty) 'avatar_url': avatarUrl,
+        });
+      }
 
       if (normalizedPhone != null) {
         await authRepository.sendOtp(emailOrPhone: normalizedPhone);

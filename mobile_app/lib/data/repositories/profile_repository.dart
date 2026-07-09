@@ -68,8 +68,9 @@ class ProfileRepository extends SupabaseRepository {
     String contentType = 'image/jpeg',
   }) {
     return guard(() async {
+      final extension = _extensionForContentType(contentType);
       final path =
-          '$userId/avatar_${DateTime.now().millisecondsSinceEpoch}.jpg';
+          '$userId/avatar_${DateTime.now().millisecondsSinceEpoch}.$extension';
       await client.storage
           .from('avatars')
           .uploadBinary(
@@ -79,6 +80,19 @@ class ProfileRepository extends SupabaseRepository {
           );
       return client.storage.from('avatars').getPublicUrl(path);
     });
+  }
+
+  String _extensionForContentType(String contentType) {
+    switch (contentType.toLowerCase()) {
+      case 'image/png':
+        return 'png';
+      case 'image/webp':
+        return 'webp';
+      case 'image/heic':
+        return 'heic';
+      default:
+        return 'jpg';
+    }
   }
 
   Future<List<Organization>> organizations() {
