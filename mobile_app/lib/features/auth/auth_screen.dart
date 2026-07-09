@@ -47,6 +47,7 @@ class _AuthScreenState extends State<AuthScreen> {
   bool pickingAvatar = false;
   String? errorMessage;
   Uint8List? avatarBytes;
+  String? avatarContentType;
 
   bool get isLogin => mode == AuthMode.login;
 
@@ -105,6 +106,7 @@ class _AuthScreenState extends State<AuthScreen> {
           password: passwordController.text,
           confirmPassword: confirmPasswordController.text,
           avatarBytes: avatarBytes,
+          avatarContentType: avatarContentType,
           phone: phone,
           acceptedTerms: acceptedTerms,
         );
@@ -208,7 +210,10 @@ class _AuthScreenState extends State<AuthScreen> {
 
     if (!mounted || action == null) return;
     if (action == _AvatarPickAction.remove) {
-      setState(() => avatarBytes = null);
+      setState(() {
+        avatarBytes = null;
+        avatarContentType = null;
+      });
       return;
     }
     final source = action == _AvatarPickAction.camera
@@ -229,7 +234,10 @@ class _AuthScreenState extends State<AuthScreen> {
       if (file == null) return;
       final bytes = await file.readAsBytes();
       if (!mounted) return;
-      setState(() => avatarBytes = bytes);
+      setState(() {
+        avatarBytes = bytes;
+        avatarContentType = file.mimeType;
+      });
     } catch (_) {
       if (!mounted) return;
       setState(() => errorMessage = 'Could not select photo. Try again.');

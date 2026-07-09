@@ -76,6 +76,7 @@ class AuthFlowController {
     required String password,
     required String confirmPassword,
     List<int>? avatarBytes,
+    String? avatarContentType,
     String? phone,
     required bool acceptedTerms,
   }) async {
@@ -162,6 +163,7 @@ class AuthFlowController {
           avatarUrl = await profileRepository.uploadAvatar(
             userId: user.id,
             bytes: avatarBytes,
+            contentType: avatarContentType ?? 'image/jpeg',
           );
         }
 
@@ -169,7 +171,8 @@ class AuthFlowController {
           'user_id': user.id,
           'full_name': fullName.trim(),
           'username': username.trim(),
-          if (avatarUrl != null && avatarUrl.isNotEmpty) 'avatar_url': avatarUrl,
+          if (avatarUrl != null && avatarUrl.isNotEmpty)
+            'avatar_url': avatarUrl,
         });
       }
 
