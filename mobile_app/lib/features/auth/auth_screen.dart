@@ -193,7 +193,8 @@ class _AuthScreenState extends State<AuthScreen> {
                   ListTile(
                     leading: const Icon(Icons.delete_outline_rounded),
                     title: const Text('Remove photo'),
-                    onTap: () => Navigator.pop(context, ImageSource.values.first),
+                    onTap: () =>
+                        Navigator.pop(context, ImageSource.values.first),
                   ),
               ],
             ),
@@ -445,13 +446,18 @@ class _ProfilePhotoPicker extends StatelessWidget {
               height: 70,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.green.withValues(alpha: .18)),
+                border: Border.all(
+                  color: AppColors.green.withValues(alpha: .18),
+                ),
                 color: AppColors.softGreen,
               ),
               child: ClipOval(
                 child: imageBytes != null
                     ? Image.memory(imageBytes!, fit: BoxFit.cover)
-                    : const Icon(Icons.add_a_photo_outlined, color: AppColors.green),
+                    : const Icon(
+                        Icons.add_a_photo_outlined,
+                        color: AppColors.green,
+                      ),
               ),
             ),
             const SizedBox(width: 12),
@@ -459,7 +465,10 @@ class _ProfilePhotoPicker extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Profile photo', style: Theme.of(context).textTheme.titleSmall),
+                  Text(
+                    'Profile photo',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     imageBytes == null
