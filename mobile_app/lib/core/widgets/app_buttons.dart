@@ -29,11 +29,13 @@ class PrimaryButton extends StatelessWidget {
         style: FilledButton.styleFrom(
           backgroundColor: color,
           foregroundColor: foregroundColor,
-          minimumSize: const Size.fromHeight(54),
+          minimumSize: const Size.fromHeight(52),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
           ),
-          textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+          elevation: 0,
+          shadowColor: Colors.transparent,
         ),
       ),
     );
@@ -61,12 +63,13 @@ class SecondaryButton extends StatelessWidget {
         label: Text(label, overflow: TextOverflow.ellipsis),
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.green,
-          side: BorderSide(color: AppColors.green.withValues(alpha: .25)),
-          minimumSize: const Size.fromHeight(54),
+          side: BorderSide(color: AppColors.line),
+          minimumSize: const Size.fromHeight(52),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
           ),
-          textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+          shadowColor: Colors.transparent,
         ),
       ),
     );

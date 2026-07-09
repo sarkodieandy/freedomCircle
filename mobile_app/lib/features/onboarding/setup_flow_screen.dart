@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../app/constants.dart';
 import '../../core/services/app_state.dart';
+import '../../data/repositories/onboarding_repository.dart';
+import '../../data/supabase/supabase_service.dart';
 import '../../data/mock/mock_data.dart';
 import '../../core/widgets/app_buttons.dart';
 import '../../core/widgets/app_card.dart';
@@ -18,6 +20,9 @@ class SetupFlowScreen extends StatefulWidget {
 }
 
 class _SetupFlowScreenState extends State<SetupFlowScreen> {
+  final OnboardingRepository _onboardingRepository =
+      const OnboardingRepository();
+
   int step = 0;
   int focus = 4;
   int privacy = 1;
@@ -106,7 +111,7 @@ class _SetupFlowScreenState extends State<SetupFlowScreen> {
                           ? 'Enter app'
                           : 'Continue',
                       icon: Icons.arrow_forward_rounded,
-                      onPressed: () {
+                      onPressed: () async {
                         if (step == pages.length - 1) {
                           AppStateScope.of(context).saveSetup(
                             focus: MockDataService.focusOptions[focus].title,
@@ -114,6 +119,18 @@ class _SetupFlowScreenState extends State<SetupFlowScreen> {
                             goal: goals[goal],
                             reminder: reminders[reminder],
                           );
+
+                          final userId = SupabaseService.currentUserId;
+                          if (userId != null) {
+                            try {
+                              await _onboardingRepository
+                                  .markOnboardingComplete(userId);
+                            } catch (_) {
+                              // The app can continue even if this network write fails.
+                            }
+                          }
+
+                          if (!mounted) return;
                           widget.onComplete();
                         } else {
                           setState(() => step++);

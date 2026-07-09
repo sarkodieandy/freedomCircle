@@ -5,6 +5,8 @@ import '../../data/models/community_post.dart';
 import '../../data/providers/repository_provider.dart';
 import '../../data/repositories/freedom_repository.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/app_search_bar.dart';
+import '../../core/widgets/app_section_header.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/common_widgets.dart';
 
@@ -45,6 +47,13 @@ class _CommunityWallScreenState extends State<CommunityWallScreen> {
                   'Prayer, testimony, questions, and moderated support.',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
+                const SizedBox(height: 12),
+                AppSearchBar(
+                  hintText:
+                      'Search prayer requests, testimonies, and questions',
+                  onFilterTap: () =>
+                      showComingSoon(context, 'Community filters'),
+                ),
                 const SizedBox(height: 22),
                 AppCard(
                   child: Column(
@@ -77,8 +86,23 @@ class _CommunityWallScreenState extends State<CommunityWallScreen> {
                         onChanged: (_) {},
                         title: const Text('Post anonymously'),
                       ),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: FilledButton.icon(
+                          onPressed: () =>
+                              showComingSoon(context, 'Create post'),
+                          icon: const Icon(Icons.send_rounded),
+                          label: const Text('Post'),
+                        ),
+                      ),
                     ],
                   ),
+                ),
+                const SizedBox(height: 12),
+                const AppSectionHeader(
+                  title: 'Latest activity',
+                  subtitle:
+                      'Safe, moderated encouragement from your community.',
                 ),
                 const SizedBox(height: 18),
                 if (snapshot.connectionState == ConnectionState.waiting)

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../app/constants.dart';
+import 'app_remote_image.dart';
 
 class RemoteImage extends StatelessWidget {
   const RemoteImage({
@@ -16,27 +16,11 @@ class RemoteImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
+    return AppRemoteImage(
+      imageUrl: imageUrl,
       borderRadius: borderRadius,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.network(
-            imageUrl,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => Container(
-              color: AppColors.softGreen,
-              alignment: Alignment.center,
-              child: const Icon(
-                Icons.image_rounded,
-                color: AppColors.green,
-                size: 42,
-              ),
-            ),
-          ),
-          if (overlayColor != null) ColoredBox(color: overlayColor!),
-        ],
-      ),
+      overlayColor: overlayColor,
+      fallbackIcon: Icons.image_rounded,
     );
   }
 }

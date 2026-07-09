@@ -17,21 +17,22 @@ class StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color,
+        color: color.withValues(alpha: .14),
         borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: .3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: Colors.white),
+          Icon(icon, size: 14, color: color),
           const SizedBox(width: 5),
           Text(
             label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w700,
               fontSize: 11,
             ),
           ),
@@ -49,17 +50,18 @@ class SmallTag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.softGreen,
+        color: AppColors.mintGreen,
         borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppColors.line),
       ),
       child: Text(
         label,
         style: const TextStyle(
           color: AppColors.green,
           fontSize: 12,
-          fontWeight: FontWeight.w800,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
@@ -75,10 +77,11 @@ class ActionPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: AppColors.softGreen,
+        color: AppColors.mintGreen,
         borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppColors.line),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -89,7 +92,7 @@ class ActionPill extends StatelessWidget {
             label,
             style: const TextStyle(
               color: AppColors.green,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w700,
               fontSize: 12,
             ),
           ),

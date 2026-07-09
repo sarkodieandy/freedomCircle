@@ -12,14 +12,19 @@ class TypingIndicator extends StatelessWidget {
     if (label.isEmpty) return const SizedBox.shrink();
 
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 180),
+      duration: const Duration(milliseconds: 220),
       child: Padding(
         key: ValueKey(label),
-        padding: const EdgeInsets.only(left: 6, bottom: 8),
+        padding: const EdgeInsets.only(left: 6, bottom: 10),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(label, style: Theme.of(context).textTheme.bodySmall),
+            Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.secondaryText),
+            ),
             const SizedBox(width: 8),
             const _Dot(delay: 0),
             const _Dot(delay: 110),
@@ -40,15 +45,18 @@ class _Dot extends StatelessWidget {
   Widget build(BuildContext context) {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: .35, end: 1),
-      duration: Duration(milliseconds: 520 + delay),
+      duration: Duration(milliseconds: 460 + delay),
       curve: Curves.easeInOut,
       builder: (context, value, child) => Opacity(
         opacity: value,
-        child: Transform.translate(offset: Offset(0, -2 * value), child: child),
+        child: Transform.translate(
+          offset: Offset(0, -1.6 * value),
+          child: child,
+        ),
       ),
       child: Container(
-        width: 5,
-        height: 5,
+        width: 6,
+        height: 6,
         margin: const EdgeInsets.only(right: 3),
         decoration: const BoxDecoration(
           color: AppColors.green,

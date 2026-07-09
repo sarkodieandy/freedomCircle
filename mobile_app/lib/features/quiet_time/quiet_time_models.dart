@@ -91,6 +91,46 @@ class QuietTimeStep {
   final int sortOrder;
 }
 
+enum QuietTimeSessionType { audio, video }
+
+extension QuietTimeSessionTypeX on QuietTimeSessionType {
+  String get key => switch (this) {
+    QuietTimeSessionType.audio => 'audio',
+    QuietTimeSessionType.video => 'video',
+  };
+
+  static QuietTimeSessionType fromKey(String raw) {
+    return QuietTimeSessionType.values.firstWhere(
+      (value) => value.key == raw,
+      orElse: () => QuietTimeSessionType.audio,
+    );
+  }
+}
+
+class QuietTimeVideoChapter {
+  const QuietTimeVideoChapter({
+    required this.id,
+    required this.sessionId,
+    required this.title,
+    required this.startSeconds,
+    required this.sortOrder,
+    this.endSeconds,
+    this.description,
+    this.scriptureReference,
+    this.reflectionPrompt,
+  });
+
+  final String id;
+  final String sessionId;
+  final String title;
+  final String? description;
+  final int startSeconds;
+  final int? endSeconds;
+  final String? scriptureReference;
+  final String? reflectionPrompt;
+  final int sortOrder;
+}
+
 class QuietTimeSession {
   const QuietTimeSession({
     required this.id,
@@ -102,9 +142,18 @@ class QuietTimeSession {
     required this.isPremium,
     required this.isActive,
     required this.sortOrder,
+    this.sessionType = QuietTimeSessionType.audio,
+    this.status = 'published',
     this.audioUrl,
+    this.videoUrl,
+    this.videoStoragePath,
+    this.videoProvider,
     this.backgroundImageUrl,
+    this.scriptureReference,
+    this.reflectionPrompt,
+    this.difficultyLevel,
     this.steps = const [],
+    this.videoChapters = const [],
   });
 
   final String id;
@@ -113,14 +162,25 @@ class QuietTimeSession {
   final String slug;
   final String description;
   final int durationMinutes;
+  final QuietTimeSessionType sessionType;
+  final String status;
   final String? audioUrl;
+  final String? videoUrl;
+  final String? videoStoragePath;
+  final String? videoProvider;
   final String? backgroundImageUrl;
+  final String? scriptureReference;
+  final String? reflectionPrompt;
+  final String? difficultyLevel;
   final bool isPremium;
   final bool isActive;
   final int sortOrder;
   final List<QuietTimeStep> steps;
+  final List<QuietTimeVideoChapter> videoChapters;
 
   String get durationLabel => '$durationMinutes min';
+
+  bool get isVideoSession => sessionType == QuietTimeSessionType.video;
 }
 
 class QuietTimeHistory {

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../../app/routes.dart';
 import '../../app/constants.dart';
 import '../../core/services/monetization_service.dart';
 import '../../data/providers/repository_provider.dart';
 import '../../data/repositories/freedom_repository.dart';
 import '../../data/models/accountability_group.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/app_search_bar.dart';
+import '../../core/widgets/app_filter_chip.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/common_widgets.dart';
 import '../../core/widgets/remote_image.dart';
@@ -78,6 +81,13 @@ class _GroupsScreenState extends State<GroupsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: AppColors.green,
+        foregroundColor: Colors.white,
+        onPressed: () => Navigator.pushNamed(context, AppRoutes.groupsCreate),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Create group'),
+      ),
       body: SafeArea(
         child: FutureBuilder<List<AccountabilityGroup>>(
           future: _groupsFuture,
@@ -102,15 +112,9 @@ class _GroupsScreenState extends State<GroupsScreen> {
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 16),
-                TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Search groups, churches, challenges',
-                    prefixIcon: const Icon(Icons.search_rounded),
-                    suffixIcon: IconButton(
-                      onPressed: () => showComingSoon(context, 'Group filters'),
-                      icon: const Icon(Icons.tune_rounded),
-                    ),
-                  ),
+                AppSearchBar(
+                  hintText: 'Search groups, churches, challenges',
+                  onFilterTap: () => showComingSoon(context, 'Group filters'),
                 ),
                 const SizedBox(height: 22),
                 SizedBox(
@@ -120,8 +124,8 @@ class _GroupsScreenState extends State<GroupsScreen> {
                     itemCount: filters.length,
                     separatorBuilder: (_, _) => const SizedBox(width: 8),
                     itemBuilder: (context, index) {
-                      return ChoiceChip(
-                        label: Text(filters[index]),
+                      return AppFilterChip(
+                        label: filters[index],
                         selected: selectedFilter == index,
                         onSelected: (_) =>
                             setState(() => selectedFilter = index),

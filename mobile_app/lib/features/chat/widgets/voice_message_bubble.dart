@@ -20,6 +20,8 @@ class VoiceMessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bg = isMine ? AppColors.green : AppColors.card;
+
     return Align(
       alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
       child: GestureDetector(
@@ -29,15 +31,35 @@ class VoiceMessageBubble extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 10),
           padding: const EdgeInsets.all(13),
           decoration: BoxDecoration(
-            color: isMine ? AppColors.green : AppColors.card,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.line),
+            color: bg,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(
+              color: isMine
+                  ? AppColors.green.withValues(alpha: .2)
+                  : AppColors.line,
+            ),
           ),
           child: Row(
             children: [
-              IconButton.filled(
-                onPressed: onPlay,
-                icon: const Icon(Icons.play_arrow_rounded),
+              Container(
+                decoration: BoxDecoration(
+                  color: isMine
+                      ? Colors.white.withValues(alpha: .18)
+                      : AppColors.softGreen,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isMine
+                        ? Colors.white.withValues(alpha: .26)
+                        : AppColors.line,
+                  ),
+                ),
+                child: IconButton(
+                  onPressed: onPlay,
+                  icon: Icon(
+                    Icons.play_arrow_rounded,
+                    color: isMine ? Colors.white : AppColors.green,
+                  ),
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(

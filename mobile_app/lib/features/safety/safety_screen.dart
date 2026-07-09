@@ -19,7 +19,7 @@ class SafetyScreen extends StatelessWidget {
         const SafetyNotice(
           icon: Icons.health_and_safety_rounded,
           text:
-              'FreedomCircle provides support and accountability, not emergency care. For urgent safety concerns, contact local emergency services, a qualified professional, pastor, or trusted guardian.',
+              'freedonCircle provides support and accountability, not emergency care. For urgent safety concerns, contact local emergency services, a qualified professional, pastor, or trusted guardian.',
         ),
         const SizedBox(height: 16),
         AppCard(

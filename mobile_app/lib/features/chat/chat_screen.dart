@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../app/constants.dart';
+import '../../core/widgets/app_card.dart';
+import '../../core/widgets/common_widgets.dart';
+import '../../core/utils/app_logger.dart';
 import '../../data/models/chat_conversation.dart';
 import '../../data/models/chat_message.dart';
 import '../../data/repositories/chat_repository.dart';
@@ -60,6 +63,10 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     final conversationId = _conversationId ?? '';
+    AppLogger.chat(
+      'Opening conversation',
+      data: {'conversation_id': conversationId, 'group_id': widget.groupId},
+    );
     _chatController = ChatController(
       conversationId: conversationId,
       groupId: widget.groupId ?? widget.conversation?.groupId,
@@ -88,6 +95,11 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     final conversationId = _conversationId;
     if (conversationId == null || conversationId.isEmpty) {
+      AppLogger.error(
+        'Unexpected null value is found',
+        tag: 'UI',
+        data: {'screen': 'ChatScreen', 'conversation_id': conversationId},
+      );
       return const Scaffold(
         body: SafeArea(
           child: Padding(
@@ -108,7 +120,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(title),
+        titleSpacing: 0,
+        title: _ChatHeader(title: title, conversation: widget.conversation),
         actions: [
           IconButton(
             onPressed: () => _repository.muteConversation(conversationId),
@@ -119,6 +132,10 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       body: Column(
         children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: OfflineNotice(),
+          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
             child: OnlinePresenceRow(
@@ -127,11 +144,21 @@ class _ChatScreenState extends State<ChatScreen> {
               accent: _accent(widget.conversation),
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: _ChatContextCard(conversation: widget.conversation),
+          ),
           Expanded(
             child: StreamBuilder<List<ChatMessage>>(
               stream: _repository.listenToMessages(conversationId),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
+                  AppLogger.error(
+                    'A screen fails to load',
+                    tag: 'UI',
+                    error: snapshot.error,
+                    data: {'screen': 'ChatScreen.messages'},
+                  );
                   return ChatErrorState(
                     message: snapshot.error.toString(),
                     onRetry: () => setState(() {}),
@@ -146,6 +173,14 @@ class _ChatScreenState extends State<ChatScreen> {
                 _markConversationRead(conversationId, messages);
 
                 if (messages.isEmpty) {
+                  AppLogger.warning(
+                    'Empty state is shown',
+                    tag: 'UI',
+                    data: {
+                      'screen': 'ChatScreen',
+                      'conversation_id': conversationId,
+                    },
+                  );
                   return const Padding(
                     padding: EdgeInsets.all(20),
                     child: ChatEmptyState(),
@@ -163,25 +198,36 @@ class _ChatScreenState extends State<ChatScreen> {
                     final message = messages[index];
                     final isMine =
                         message.senderId == SupabaseService.currentUserId;
-                    return _AnimatedMessage(
-                      index: index,
-                      child: message.isVoice
-                          ? VoiceMessageBubble(
-                              message: message,
-                              isMine: isMine,
-                              onPlay: () => _playVoice(message),
-                              onLongPress: () =>
-                                  _showMessageActions(message, isMine),
-                            )
-                          : ChatMessageBubble(
-                              message: message,
-                              isMine: isMine,
-                              onReply: () => _chatController.setReply(message),
-                              onReaction: (reaction) =>
-                                  _react(message, reaction),
-                              onLongPress: () =>
-                                  _showMessageActions(message, isMine),
-                            ),
+                    final previous = index > 0 ? messages[index - 1] : null;
+                    final showDate =
+                        previous == null ||
+                        !_isSameDay(previous.createdAt, message.createdAt);
+
+                    return Column(
+                      children: [
+                        if (showDate) _DateChip(date: message.createdAt),
+                        _AnimatedMessage(
+                          index: index,
+                          child: message.isVoice
+                              ? VoiceMessageBubble(
+                                  message: message,
+                                  isMine: isMine,
+                                  onPlay: () => _playVoice(message),
+                                  onLongPress: () =>
+                                      _showMessageActions(message, isMine),
+                                )
+                              : ChatMessageBubble(
+                                  message: message,
+                                  isMine: isMine,
+                                  onReply: () =>
+                                      _chatController.setReply(message),
+                                  onReaction: (reaction) =>
+                                      _react(message, reaction),
+                                  onLongPress: () =>
+                                      _showMessageActions(message, isMine),
+                                ),
+                        ),
+                      ],
                     );
                   },
                 );
@@ -193,18 +239,24 @@ class _ChatScreenState extends State<ChatScreen> {
               _chatController,
               _recordingController,
             ]),
-            builder: (context, _) => ChatInputBar(
-              onSend: _chatController.sendText,
-              onRecordPressed: _handleRecordPressed,
-              onTyping: _sendTyping,
-              replyingTo: _chatController.replyingTo,
-              onCancelReply: () => _chatController.setReply(null),
-              isRecording: _recordingController.state.isRecording,
-              recordingSeconds: _recordingController.state.durationSeconds,
-              isAnonymous: _chatController.isAnonymous,
-              onAnonymousChanged: widget.allowAnonymous
-                  ? _chatController.setAnonymous
-                  : null,
+            builder: (context, _) => DecoratedBox(
+              decoration: BoxDecoration(
+                color: AppColors.softCream,
+                border: Border(top: BorderSide(color: AppColors.line)),
+              ),
+              child: ChatInputBar(
+                onSend: _chatController.sendText,
+                onRecordPressed: _handleRecordPressed,
+                onTyping: _sendTyping,
+                replyingTo: _chatController.replyingTo,
+                onCancelReply: () => _chatController.setReply(null),
+                isRecording: _recordingController.state.isRecording,
+                recordingSeconds: _recordingController.state.durationSeconds,
+                isAnonymous: _chatController.isAnonymous,
+                onAnonymousChanged: widget.allowAnonymous
+                    ? _chatController.setAnonymous
+                    : null,
+              ),
             ),
           ),
         ],
@@ -217,6 +269,10 @@ class _ChatScreenState extends State<ChatScreen> {
     if (userId == null || userId == SupabaseService.currentUserId) return;
 
     final isTyping = payload['is_typing'] == true;
+    AppLogger.chat(
+      'Typing event received',
+      data: {'conversation_id': _conversationId, 'is_typing': isTyping},
+    );
     _typingTimer?.cancel();
     if (!mounted) return;
     setState(() => _typingLabel = isTyping ? 'Someone is typing' : '');
@@ -235,6 +291,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _handleRecordPressed() async {
     if (_recordingController.state.isRecording) {
+      AppLogger.chat(
+        'Recording stopped',
+        data: {'conversation_id': _conversationId},
+      );
       final state = await _recordingController.stop();
       if (!mounted) return;
       if (state.localFilePath == null) {
@@ -247,6 +307,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
       final conversationId = _conversationId;
       if (conversationId == null) return;
+      AppLogger.chat(
+        'Recording upload started',
+        data: {'conversation_id': conversationId},
+      );
       final filePath = await _recordingRepository.uploadVoiceNote(
         conversationId: conversationId,
         localFilePath: state.localFilePath!,
@@ -271,9 +335,17 @@ class _ChatScreenState extends State<ChatScreen> {
         mimeType: 'audio/mp4',
         consentConfirmed: false,
       );
+      AppLogger.chat(
+        'Recording upload success',
+        data: {'conversation_id': conversationId},
+      );
       return;
     }
 
+    AppLogger.chat(
+      'Recording started',
+      data: {'conversation_id': _conversationId},
+    );
     await _recordingController.start();
     if (!mounted) return;
     final error = _recordingController.state.error;
@@ -331,18 +403,31 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _delete(ChatMessage message) async {
     await _repository.softDeleteMessage(message.id);
+    AppLogger.chat('Message delete success', data: {'message_id': message.id});
   }
 
   Future<void> _hideAsModerator(ChatMessage message) async {
     await _repository.hideMessageAsModerator(message.id);
+    AppLogger.chat(
+      'Message hidden by moderator',
+      data: {'message_id': message.id},
+    );
   }
 
   Future<void> _react(ChatMessage message, String reaction) async {
     await _repository.reactToMessage(message.id, reaction);
+    AppLogger.chat(
+      'Message reaction added',
+      data: {'message_id': message.id, 'reaction': reaction},
+    );
   }
 
   Future<void> _report(ChatMessage message) async {
     await _repository.reportMessage(message.id, 'chat_message');
+    AppLogger.chat(
+      'Message report submitted',
+      data: {'message_id': message.id},
+    );
     if (mounted) _showSnack('Message reported for review.');
   }
 
@@ -397,6 +482,10 @@ class _ChatScreenState extends State<ChatScreen> {
       _ => AppColors.green,
     };
   }
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
 }
 
 class _AnimatedMessage extends StatelessWidget {
@@ -419,6 +508,112 @@ class _AnimatedMessage extends StatelessWidget {
         ),
       ),
       child: child,
+    );
+  }
+}
+
+class _DateChip extends StatelessWidget {
+  const _DateChip({required this.date});
+
+  final DateTime date;
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(date.year, date.month, date.day);
+    final label = target == today
+        ? 'Today'
+        : target == today.subtract(const Duration(days: 1))
+        ? 'Yesterday'
+        : '${date.day}/${date.month}/${date.year}';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppColors.softCream,
+            borderRadius: BorderRadius.circular(100),
+            border: Border.all(color: AppColors.line),
+          ),
+          child: Text(label, style: Theme.of(context).textTheme.bodySmall),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChatHeader extends StatelessWidget {
+  const _ChatHeader({required this.title, required this.conversation});
+
+  final String title;
+  final ChatConversation? conversation;
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = switch (conversation?.conversationType) {
+      'prayer_group' => Icons.volunteer_activism_rounded,
+      'helper_private' => Icons.verified_user_rounded,
+      'support_request' => Icons.support_agent_rounded,
+      _ => Icons.groups_rounded,
+    };
+
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 18,
+          backgroundColor: AppColors.softGreen,
+          child: Icon(icon, size: 18, color: AppColors.green),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, overflow: TextOverflow.ellipsis),
+              Text(
+                conversation?.isPrivate == true
+                    ? 'Private secure conversation'
+                    : 'Safe and moderated space',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.mutedText),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ChatContextCard extends StatelessWidget {
+  const _ChatContextCard({required this.conversation});
+
+  final ChatConversation? conversation;
+
+  @override
+  Widget build(BuildContext context) {
+    final isGroup = conversation?.isGroup == true;
+    return AppCard(
+      color: AppColors.softGreen,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.push_pin_rounded, color: AppColors.green, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              isGroup
+                  ? 'Weekly prompt: What habit are you protecting this week? Keep replies practical and encouraging.'
+                  : 'Safety note: This conversation is for support and accountability, not emergency care.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

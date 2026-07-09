@@ -92,7 +92,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   const FreedomLogo(size: 42),
                   const SizedBox(width: 12),
                   Text(
-                    'FreedomCircle',
+                    'freedonCircle',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const Spacer(),

@@ -19,9 +19,9 @@ class OnlinePresenceRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: .1),
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: accent.withValues(alpha: .18)),
+        border: Border.all(color: AppColors.line),
       ),
       child: Row(
         children: [
@@ -30,7 +30,7 @@ class OnlinePresenceRow extends StatelessWidget {
               widthFactor: .74,
               child: CircleAvatar(
                 radius: 13,
-                backgroundColor: AppColors.card,
+                backgroundColor: AppColors.softGreen,
                 child: Text(
                   item,
                   style: TextStyle(
@@ -53,7 +53,11 @@ class OnlinePresenceRow extends StatelessWidget {
           Container(
             width: 9,
             height: 9,
-            decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
+            decoration: BoxDecoration(
+              color: accent,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white),
+            ),
           ),
         ],
       ),

@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import '../../app/constants.dart';
 import '../../app/images.dart';
 import '../../core/widgets/app_card.dart';
-import '../../core/widgets/badges.dart';
 import '../../core/widgets/common_widgets.dart';
+import '../../core/widgets/app_profile_header.dart';
+import '../../core/widgets/app_metric_card.dart';
 import '../../core/widgets/progress_ring.dart';
 import '../../data/models/helper_profile.dart';
 import '../../data/providers/repository_provider.dart';
@@ -47,84 +48,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 104),
               children: [
+                AppProfileHeader(
+                  name: 'Andy Mensah',
+                  username: '@andyfaith • Anonymous mode enabled',
+                  avatarUrl: AppImages.avatarTwo,
+                  isPremium: false,
+                  onSettings: () => pushScreen(context, const SettingsScreen()),
+                ),
+                const SizedBox(height: 16),
                 AppCard(
-                  color: AppColors.darkSurface,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
                     children: [
-                      Row(
-                        children: [
-                          const CircleAvatar(
-                            radius: 38,
-                            backgroundImage: NetworkImage(AppImages.avatarTwo),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Andy Mensah',
-                                  style: Theme.of(context).textTheme.titleLarge
-                                      ?.copyWith(color: Colors.white),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '@andyfaith • Anonymous mode enabled',
-                                  style: Theme.of(context).textTheme.bodyMedium
-                                      ?.copyWith(
-                                        color: Colors.white.withValues(
-                                          alpha: .72,
-                                        ),
-                                      ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton.filledTonal(
-                            onPressed: () =>
-                                pushScreen(context, const SettingsScreen()),
-                            icon: const Icon(Icons.settings_rounded),
-                          ),
-                        ],
+                      const ProgressRing(
+                        progress: .57,
+                        size: 82,
+                        color: AppColors.gold,
+                        label: '12d',
                       ),
-                      const SizedBox(height: 18),
-                      Row(
-                        children: [
-                          const ProgressRing(
-                            progress: .57,
-                            size: 82,
-                            color: AppColors.gold,
-                            label: '12d',
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Text(
-                              'Spiritual progress: recovery, prayer, Bible, and fasting rhythm are moving steadily.',
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(
-                                    color: Colors.white.withValues(alpha: .78),
-                                  ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: const [
-                          StatusBadge(
-                            label: '7-day badge',
-                            color: AppColors.gold,
-                            icon: Icons.workspace_premium_rounded,
-                          ),
-                          StatusBadge(
-                            label: '3 groups',
-                            color: AppColors.green,
-                            icon: Icons.groups_rounded,
-                          ),
-                        ],
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          'Spiritual progress: recovery, prayer, Bible, and fasting rhythm are moving steadily.',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
                       ),
                     ],
                   ),
@@ -148,6 +94,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const _GoalRow('Bible study', 'John 8 today', .64),
                     ],
                   ),
+                ),
+                const SizedBox(height: 16),
+                const AppMetricCard(
+                  title: 'Milestones',
+                  value: '7-day consistency badge',
+                  icon: Icons.workspace_premium_rounded,
+                ),
+                const SizedBox(height: 12),
+                const AppMetricCard(
+                  title: 'Groups',
+                  value: '3 joined accountability circles',
+                  icon: Icons.groups_rounded,
                 ),
                 const SizedBox(height: 16),
                 if (helper != null)

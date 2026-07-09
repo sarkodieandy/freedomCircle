@@ -13,6 +13,16 @@ flutter run \
   --dart-define=SUPABASE_ANON_KEY=your_anon_or_publishable_key_here
 ```
 
+Recommended local workflow:
+
+1. Copy `.env.local.example.json` to `.env.local.json`.
+2. Put your real anon key in `.env.local.json`.
+3. Run with:
+
+```sh
+flutter run --dart-define-from-file=.env.local.json
+```
+
 Do not put the service role key, database URL, Supabase access token, or payment
 provider secrets in Flutter. Those belong only in Laravel/backend runtime
 configuration.

@@ -22,7 +22,7 @@ class AuthSuccessScreen extends StatelessWidget {
       children: [
         AuthSuccessCard(
           title: "You're all set",
-          subtitle: "Let's personalize your FreedomCircle journey.",
+          subtitle: "Let's personalize your freedonCircle journey.",
           buttonLabel: 'Continue setup',
           onContinue: onContinue,
         ),

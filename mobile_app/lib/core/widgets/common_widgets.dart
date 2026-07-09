@@ -1,7 +1,48 @@
 import 'package:flutter/material.dart';
 
 import '../../app/constants.dart';
+import '../utils/app_logger.dart';
 import 'app_card.dart';
+
+class AppIconContainer extends StatelessWidget {
+  const AppIconContainer({
+    super.key,
+    required this.icon,
+    this.color = AppColors.green,
+    this.size = 44,
+    this.iconSize = 22,
+    this.imageUrl,
+  });
+
+  final IconData icon;
+  final Color color;
+  final double size;
+  final double iconSize;
+  final String? imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: imageUrl == null ? color.withValues(alpha: .12) : AppColors.card,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: imageUrl == null
+          ? Icon(icon, color: color, size: iconSize)
+          : ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadius.xs),
+              child: Image.network(
+                imageUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => Icon(icon, color: color),
+              ),
+            ),
+    );
+  }
+}
 
 class SectionHeader extends StatelessWidget {
   const SectionHeader({
@@ -9,18 +50,36 @@ class SectionHeader extends StatelessWidget {
     required this.title,
     this.action,
     this.onAction,
+    this.subtitle,
+    this.leadingIcon,
   });
 
   final String title;
   final String? action;
   final VoidCallback? onAction;
+  final String? subtitle;
+  final IconData? leadingIcon;
 
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (leadingIcon != null) ...[
+          AppIconContainer(icon: leadingIcon!, size: 38, iconSize: 18),
+          const SizedBox(width: AppSpacing.md),
+        ],
         Expanded(
-          child: Text(title, style: Theme.of(context).textTheme.titleLarge),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: AppTextStyles.sectionTitle),
+              if (subtitle != null) ...[
+                const SizedBox(height: AppSpacing.xs),
+                Text(subtitle!, style: AppTextStyles.body),
+              ],
+            ],
+          ),
         ),
         if (action != null)
           TextButton(onPressed: onAction, child: Text(action!)),
@@ -38,17 +97,22 @@ class SafetyNotice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.support.withValues(alpha: .1),
-        borderRadius: BorderRadius.circular(18),
+        color: AppColors.supportBg,
+        borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(color: AppColors.support.withValues(alpha: .24)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: AppColors.support),
-          const SizedBox(width: 10),
+          AppIconContainer(
+            icon: icon,
+            color: AppColors.support,
+            size: 36,
+            iconSize: 18,
+          ),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
               text,
@@ -87,41 +151,26 @@ class SelectableOption extends StatelessWidget {
       duration: const Duration(milliseconds: 220),
       decoration: BoxDecoration(
         color: selected ? AppColors.softGreen : AppColors.card,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(
           color: selected ? accent : AppColors.line,
-          width: 1.2,
+          width: selected ? 1.2 : 1,
         ),
       ),
-      child: ListTile(
-        onTap: onTap,
-        leading: Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: iconUrl == null
-                ? accent.withValues(alpha: .14)
-                : AppColors.background,
-            borderRadius: BorderRadius.circular(14),
-            border: iconUrl == null
-                ? null
-                : Border.all(color: AppColors.line, width: 1),
+      child: Material(
+        type: MaterialType.transparency,
+        child: ListTile(
+          onTap: onTap,
+          leading: AppIconContainer(
+            icon: icon,
+            color: accent,
+            imageUrl: iconUrl,
           ),
-          child: iconUrl == null
-              ? Icon(icon, color: accent)
-              : ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    iconUrl!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => Icon(icon, color: accent),
-                  ),
-                ),
-        ),
-        title: Text(label, style: Theme.of(context).textTheme.titleMedium),
-        trailing: Icon(
-          selected ? Icons.check_circle_rounded : Icons.circle_outlined,
-          color: selected ? accent : AppColors.line,
+          title: Text(label, style: AppTextStyles.cardTitle),
+          trailing: Icon(
+            selected ? Icons.check_circle_rounded : Icons.circle_outlined,
+            color: selected ? accent : AppColors.line,
+          ),
         ),
       ),
     );
@@ -149,27 +198,19 @@ class SettingsTile extends StatelessWidget {
     final color = destructive ? AppColors.support : AppColors.green;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: AppCard(
         onTap: onTap,
         child: Row(
           children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: .12),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(icon, color: color),
-            ),
-            const SizedBox(width: 12),
+            AppIconContainer(icon: icon, color: color, size: 46),
+            const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: Theme.of(context).textTheme.titleMedium),
-                  Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+                  Text(title, style: AppTextStyles.cardTitle),
+                  Text(subtitle, style: AppTextStyles.body),
                 ],
               ),
             ),
@@ -197,29 +238,31 @@ class EmptyStateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    AppLogger.warning(
+      'Empty state is shown',
+      tag: 'UI',
+      data: {'title': title, 'action': action},
+    );
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: AppCard(
         child: Column(
           children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: AppColors.softGreen,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Icon(icon, color: AppColors.green, size: 34),
+            AppIconContainer(
+              icon: icon,
+              size: 68,
+              iconSize: 30,
+              color: AppColors.green,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             Text(title, style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             Text(
               body,
               style: Theme.of(context).textTheme.bodyMedium,
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             OutlinedButton.icon(
               onPressed: () => showComingSoon(context, action),
               icon: const Icon(Icons.arrow_forward_rounded),
@@ -251,10 +294,10 @@ class LoadingStateCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Loading gently', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 14),
+          const SizedBox(height: AppSpacing.md),
           for (var i = 0; i < 3; i++)
             Padding(
-              padding: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: TweenAnimationBuilder<double>(
                 tween: Tween(begin: .35, end: 1),
                 duration: Duration(milliseconds: 700 + i * 140),
@@ -291,21 +334,31 @@ class ErrorRetryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    AppLogger.error(
+      'A screen failed to load',
+      tag: 'UI',
+      data: {'title': title, 'body': body},
+    );
     return AppCard(
-      color: AppColors.support.withValues(alpha: .08),
+      color: AppColors.supportBg,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.error_outline_rounded, color: AppColors.support),
-          const SizedBox(width: 12),
+          const AppIconContainer(
+            icon: Icons.error_outline_rounded,
+            color: AppColors.support,
+            size: 36,
+            iconSize: 18,
+          ),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title, style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.xs),
                 Text(body, style: Theme.of(context).textTheme.bodyMedium),
-                const SizedBox(height: 10),
+                const SizedBox(height: AppSpacing.sm),
                 OutlinedButton.icon(
                   onPressed: onRetry,
                   icon: const Icon(Icons.refresh_rounded),
@@ -325,12 +378,18 @@ class OfflineNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    AppLogger.warning('Network error happens', tag: 'UI');
     return AppCard(
       color: AppColors.navy,
       child: Row(
         children: [
-          const Icon(Icons.wifi_off_rounded, color: AppColors.gold),
-          const SizedBox(width: 12),
+          const AppIconContainer(
+            icon: Icons.wifi_off_rounded,
+            color: AppColors.gold,
+            size: 36,
+            iconSize: 18,
+          ),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(
               'You are offline. Private drafts stay on this device until connection returns.',
@@ -346,5 +405,9 @@ class OfflineNotice extends StatelessWidget {
 }
 
 void pushScreen(BuildContext context, Widget screen) {
+  AppLogger.navigation(
+    'Button navigation tapped',
+    data: {'screen': screen.runtimeType.toString()},
+  );
   Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
 }

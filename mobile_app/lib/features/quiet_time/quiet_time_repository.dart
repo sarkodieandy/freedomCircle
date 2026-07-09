@@ -1,3 +1,8 @@
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+
+import '../../core/config/backend_config.dart';
 import '../../core/services/monetization_service.dart';
 import '../../data/supabase/supabase_service.dart';
 import 'quiet_time_models.dart';
@@ -21,9 +26,11 @@ class QuietTimeRepository {
 
   Future<List<QuietTimeSession>> sessionsByCategory(String categorySlug) async {
     final all = await sessions();
-    final category = mockCategories.firstWhere(
+    final allCategories = await categories();
+    if (allCategories.isEmpty) return all;
+    final category = allCategories.firstWhere(
       (item) => item.slug == categorySlug,
-      orElse: () => mockCategories.first,
+      orElse: () => allCategories.first,
     );
     return all.where((item) => item.categoryId == category.id).toList();
   }
@@ -33,8 +40,9 @@ class QuietTimeRepository {
     try {
       final rows = await SupabaseService.client
           .from('quiet_time_sessions')
-          .select('*, quiet_time_steps(*)')
+          .select('*, quiet_time_steps(*), quiet_time_video_chapters(*)')
           .eq('is_active', true)
+          .eq('status', 'published')
           .order('sort_order');
       return (rows as List).map(_sessionFromMap).toList();
     } catch (_) {
@@ -151,10 +159,65 @@ class QuietTimeRepository {
   }
 
   Future<bool> canAccessSession(QuietTimeSession session) async {
-    if (!session.isPremium) return true;
-    return MonetizationService.instance.hasFeature(
-      'quiet_time_premium_library',
+    return MonetizationService.instance.canAccessQuietTimeSession(session.id);
+  }
+
+  Future<bool> canAccessVideoSession(QuietTimeSession session) async {
+    return MonetizationService.instance.canAccessQuietTimeVideo(session.id);
+  }
+
+  /// Returns a short-lived signed URL for a private video stored in Supabase.
+  ///
+  /// Primary path: Supabase-native signed URL (works for any authenticated
+  /// user with SELECT on the quiet-time-videos bucket).
+  /// Fallback: Laravel API endpoint (adds server-side entitlement re-check
+  /// when BackendConfig.laravelApiBaseUrl is configured).
+  Future<String?> signedVideoUrl(
+    String sessionId, {
+    String? storagePath,
+  }) async {
+    if (!SupabaseService.isInitialized) return null;
+
+    // ── PRIMARY: Supabase-native signed URL ──────────────────────────────
+    final path = storagePath;
+    if (path != null && path.isNotEmpty) {
+      try {
+        final url = await SupabaseService.client.storage
+            .from('quiet-time-videos')
+            .createSignedUrl(path, 900);
+        if (url.isNotEmpty) return url;
+      } catch (_) {
+        // Path known but signing failed; try Laravel fallback
+      }
+    }
+
+    // ── FALLBACK: Laravel API with server-side entitlement check ─────────
+    if (!BackendConfig.isConfigured) return null;
+    final supaSession = SupabaseService.currentSession;
+    final accessToken = supaSession?.accessToken;
+    if (accessToken == null || accessToken.isEmpty) return null;
+
+    final uri = Uri.parse(
+      '${BackendConfig.laravelApiBaseUrl}/api/quiet-time/sessions/$sessionId/signed-video-url',
     );
+
+    try {
+      final response = await http.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Accept': 'application/json',
+        },
+      );
+      if (response.statusCode < 200 || response.statusCode >= 300) return null;
+      final payload = jsonDecode(response.body);
+      if (payload is! Map<String, dynamic>) return null;
+      final signedUrl = payload['signed_url'] as String?;
+      if (signedUrl == null || signedUrl.isEmpty) return null;
+      return signedUrl;
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<bool> canAccessAdvancedInsights() {
@@ -227,7 +290,10 @@ class QuietTimeRepository {
   QuietTimeSession _sessionFromMap(dynamic raw) {
     final map = raw as Map<String, dynamic>;
     final stepsRaw = map['quiet_time_steps'] as List?;
+    final chaptersRaw = map['quiet_time_video_chapters'] as List?;
     final steps = (stepsRaw ?? const []).map(_stepFromMap).toList()
+      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    final chapters = (chaptersRaw ?? const []).map(_chapterFromMap).toList()
       ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
     return QuietTimeSession(
       id: map['id'] as String,
@@ -236,12 +302,38 @@ class QuietTimeRepository {
       slug: (map['slug'] as String?) ?? '',
       description: (map['description'] as String?) ?? '',
       durationMinutes: (map['duration_minutes'] as num?)?.toInt() ?? 5,
+      sessionType: QuietTimeSessionTypeX.fromKey(
+        (map['session_type'] as String?) ?? 'audio',
+      ),
+      status: (map['status'] as String?) ?? 'published',
       audioUrl: map['audio_url'] as String?,
+      videoUrl: map['video_url'] as String?,
+      videoStoragePath: map['video_storage_path'] as String?,
+      videoProvider: map['video_provider'] as String?,
       backgroundImageUrl: map['background_image_url'] as String?,
+      scriptureReference: map['scripture_reference'] as String?,
+      reflectionPrompt: map['reflection_prompt'] as String?,
+      difficultyLevel: map['difficulty_level'] as String?,
       isPremium: (map['is_premium'] as bool?) ?? false,
       isActive: (map['is_active'] as bool?) ?? true,
       sortOrder: (map['sort_order'] as num?)?.toInt() ?? 0,
       steps: steps.isEmpty ? _defaultSteps(map['id'] as String) : steps,
+      videoChapters: chapters,
+    );
+  }
+
+  QuietTimeVideoChapter _chapterFromMap(dynamic raw) {
+    final map = raw as Map<String, dynamic>;
+    return QuietTimeVideoChapter(
+      id: map['id'] as String,
+      sessionId: (map['session_id'] as String?) ?? '',
+      title: (map['title'] as String?) ?? 'Chapter',
+      description: map['description'] as String?,
+      startSeconds: (map['start_seconds'] as num?)?.toInt() ?? 0,
+      endSeconds: (map['end_seconds'] as num?)?.toInt(),
+      scriptureReference: map['scripture_reference'] as String?,
+      reflectionPrompt: map['reflection_prompt'] as String?,
+      sortOrder: (map['sort_order'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -409,9 +501,32 @@ class QuietTimeRepository {
       slug: '3-minute-stillness',
       description: 'A short quiet pause to breathe, settle, and reconnect.',
       durationMinutes: 3,
+      sessionType: QuietTimeSessionType.video,
+      status: 'published',
+      videoUrl:
+          'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4',
+      videoProvider: 'sample',
       isPremium: false,
       isActive: true,
       sortOrder: 1,
+      videoChapters: [
+        QuietTimeVideoChapter(
+          id: 'qt-c-1',
+          sessionId: 'qt-s-1',
+          title: 'Breathe and Settle',
+          startSeconds: 0,
+          sortOrder: 1,
+          scriptureReference: 'Psalm 46:10',
+        ),
+        QuietTimeVideoChapter(
+          id: 'qt-c-2',
+          sessionId: 'qt-s-1',
+          title: 'Quiet Reflection',
+          startSeconds: 70,
+          sortOrder: 2,
+          reflectionPrompt: 'What do you need to surrender right now?',
+        ),
+      ],
     ),
     QuietTimeSession(
       id: 'qt-s-2',
@@ -451,11 +566,33 @@ class QuietTimeRepository {
       categoryId: 'qt-cat-guided-prayer',
       title: '21-Day Quiet Time Journey',
       slug: '21-day-quiet-time-journey',
-      description: 'A premium guided audio path for spiritual consistency.',
+      description: 'A premium guided video path for spiritual consistency.',
       durationMinutes: 12,
+      sessionType: QuietTimeSessionType.video,
+      status: 'published',
+      videoUrl:
+          'https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4',
+      videoProvider: 'sample',
       isPremium: true,
       isActive: true,
       sortOrder: 5,
+      videoChapters: [
+        QuietTimeVideoChapter(
+          id: 'qt-c-5',
+          sessionId: 'qt-s-5',
+          title: 'Opening Prayer',
+          startSeconds: 0,
+          sortOrder: 1,
+          scriptureReference: 'Matthew 11:28',
+        ),
+        QuietTimeVideoChapter(
+          id: 'qt-c-6',
+          sessionId: 'qt-s-5',
+          title: 'Scripture Meditation',
+          startSeconds: 180,
+          sortOrder: 2,
+        ),
+      ],
     ),
     QuietTimeSession(
       id: 'qt-s-6',

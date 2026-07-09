@@ -2,6 +2,8 @@ import '../../data/models/monetization_models.dart';
 import '../../data/models/revenuecat_models.dart';
 import '../../data/repositories/subscription_repository.dart';
 import '../../data/supabase/supabase_service.dart';
+import '../config/revenuecat_config.dart';
+import '../utils/app_logger.dart';
 
 class MonetizationService {
   const MonetizationService._();
@@ -15,19 +17,41 @@ class MonetizationService {
     'premium_groups',
     'unlimited_journal',
     'quiet_time_premium_library',
+    'quiet_time_premium_video_library',
+    'quiet_time_video_practice',
+    'quiet_time_video_downloads',
     'quiet_time_advanced_insights',
     'helper_matching',
     'guided_programs',
     'private_anonymous_controls',
+    'milestone_badges',
+    'advanced_streak_calendar',
+    'priority_support_prompts',
   };
+
+  static const _defaultFreeRecoveryGoalLimit = 1;
+  static const _defaultFreeGroupJoinLimit = 2;
+  static const _defaultFreeJournalEntryLimit = 5;
+  static const _defaultFreeQuietTimeSessionLimit = 4;
 
   static const _subscriptionRepository = SubscriptionRepository();
 
   static CustomerPremiumStatus? _cachedPremiumStatus;
 
   Future<void> initializePremiumWatcher() async {
+    AppLogger.payment(
+      'Payment request started',
+      data: {'source': 'MonetizationService.initializePremiumWatcher'},
+    );
     _subscriptionRepository.watchPremiumStatus().listen((status) {
       _cachedPremiumStatus = status;
+      AppLogger.info(
+        status.isPremium
+            ? 'Premium entitlement active'
+            : 'Premium entitlement inactive',
+        tag: 'REVENUECAT',
+        data: {'user_id': status.userId},
+      );
     });
     await refreshEntitlements();
   }
@@ -35,12 +59,28 @@ class MonetizationService {
   Future<void> refreshEntitlements() async {
     if (!SupabaseService.isInitialized ||
         SupabaseService.currentUserId == null) {
+      AppLogger.warning(
+        'Entitlement refresh skipped',
+        tag: 'PAYMENT',
+        data: {'initialized': SupabaseService.isInitialized},
+      );
       return;
     }
 
+    AppLogger.payment(
+      'Payment verification waiting',
+      data: {'source': 'MonetizationService.refreshEntitlements'},
+    );
     final status = await _subscriptionRepository.getCustomerStatus();
     _cachedPremiumStatus = status;
     await _subscriptionRepository.syncPremiumStatusToSupabase();
+    AppLogger.payment(
+      'Booking payment status updated',
+      data: {
+        'is_premium': status.isPremium,
+        'source': 'MonetizationService.refreshEntitlements',
+      },
+    );
   }
 
   Future<bool> _isRevenueCatPremium() async {
@@ -59,10 +99,20 @@ class MonetizationService {
       return !premiumFeatureKeys.contains(featureKey);
     }
 
+    if (!premiumFeatureKeys.contains(featureKey)) {
+      return true;
+    }
+
     if (premiumFeatureKeys.contains(featureKey) &&
         await _isRevenueCatPremium()) {
       return true;
     }
+
+    final freeToggle = await _readSettingBool(
+      'free_$featureKey',
+      fallback: false,
+    );
+    if (freeToggle) return true;
 
     final result = await SupabaseService.client.rpc<bool>(
       'verify_entitlement',
@@ -75,12 +125,22 @@ class MonetizationService {
     if (!SupabaseService.isInitialized) return true;
     final userId = SupabaseService.currentUser?.id;
     if (userId == null) return false;
+    final freeLimit = await _readSettingInt(
+      'free_group_join_limit',
+      fallback: _defaultFreeGroupJoinLimit,
+    );
+
     final rows = await SupabaseService.client
         .from('group_members')
         .select('id')
         .eq('user_id', userId)
         .eq('status', 'approved');
-    if ((rows as List).length < 2) return true;
+
+    final currentCount = (rows as List).length;
+    await _trackFeatureUsage('groups_joined', value: currentCount);
+    if (currentCount < freeLimit) return true;
+
+    await trackPaywallView('groups', 'premium_groups');
     return hasFeature('premium_groups');
   }
 
@@ -90,19 +150,23 @@ class MonetizationService {
     if (userId == null) return false;
     if (await hasFeature('recovery_goals_unlimited')) return true;
 
-    final appSettings = await SupabaseService.client
-        .from('app_settings')
-        .select('setting_value')
-        .eq('setting_key', 'free_recovery_goals_limit')
-        .maybeSingle();
-    final freeLimit =
-        (appSettings?['setting_value']?['limit'] as num?)?.toInt() ?? 2;
+    final freeLimit = await _readSettingInt(
+      'free_recovery_goal_limit',
+      fallback: _defaultFreeRecoveryGoalLimit,
+    );
 
     final rows = await SupabaseService.client
         .from('user_recovery_goals')
         .select('id')
         .eq('user_id', userId);
-    return (rows as List).length < freeLimit;
+
+    final currentCount = (rows as List).length;
+    await _trackFeatureUsage('recovery_goals_created', value: currentCount);
+    if (currentCount >= freeLimit) {
+      await trackPaywallView('recovery', 'recovery_goals_unlimited');
+    }
+
+    return currentCount < freeLimit;
   }
 
   Future<bool> canAccessPremiumGroup(String groupId) {
@@ -110,7 +174,51 @@ class MonetizationService {
   }
 
   Future<bool> canAccessPremiumQuietTimeSession(String sessionId) {
+    return canAccessQuietTimeSession(sessionId);
+  }
+
+  Future<bool> canAccessQuietTimeVideo(String sessionId) async {
+    if (!SupabaseService.isInitialized) return true;
+    final userId = SupabaseService.currentUser?.id;
+    if (userId == null) return false;
+
+    final session = await SupabaseService.client
+        .from('quiet_time_sessions')
+        .select('is_premium,session_type')
+        .eq('id', sessionId)
+        .maybeSingle();
+
+    final isVideo = (session?['session_type'] as String?) == 'video';
+    if (!isVideo) {
+      return canAccessQuietTimeSession(sessionId);
+    }
+
+    final isPremiumSession = (session?['is_premium'] as bool?) ?? false;
+    if (!isPremiumSession) return true;
+
+    await trackPaywallView(
+      'quiet_time_video',
+      'quiet_time_premium_video_library',
+    );
+    final hasVideoPremium = await hasFeature(
+      'quiet_time_premium_video_library',
+    );
+    if (hasVideoPremium) return true;
     return hasFeature('quiet_time_premium_library');
+  }
+
+  Future<bool> canAccessPremiumQuietTimeVideos() {
+    return hasFeature('quiet_time_premium_video_library');
+  }
+
+  Future<bool> canDownloadQuietTimeVideo(String sessionId) async {
+    final canAccess = await canAccessQuietTimeVideo(sessionId);
+    if (!canAccess) return false;
+    return hasFeature('quiet_time_video_downloads');
+  }
+
+  Future<void> showPaywallForQuietTimeVideo(String sessionId) {
+    return showPaywallForFeature('quiet_time_premium_video_library');
   }
 
   Future<bool> canUseAdvancedRecoveryInsights() {
@@ -129,14 +237,67 @@ class MonetizationService {
         .select('id')
         .eq('user_id', userId);
 
-    final appSettings = await SupabaseService.client
-        .from('app_settings')
-        .select('setting_value')
-        .eq('setting_key', 'free_journal_entry_limit')
+    final freeLimit = await _readSettingInt(
+      'free_journal_entry_limit',
+      fallback: _defaultFreeJournalEntryLimit,
+    );
+
+    final currentCount = (rows as List).length;
+    await _trackFeatureUsage('journal_entries_created', value: currentCount);
+    if (currentCount >= freeLimit) {
+      await trackPaywallView('journal', 'unlimited_journal');
+    }
+
+    return currentCount < freeLimit;
+  }
+
+  Future<bool> canAccessQuietTimeSession(String sessionId) async {
+    if (!SupabaseService.isInitialized) return true;
+    final userId = SupabaseService.currentUser?.id;
+    if (userId == null) return false;
+
+    final session = await SupabaseService.client
+        .from('quiet_time_sessions')
+        .select('is_premium')
+        .eq('id', sessionId)
         .maybeSingle();
-    final freeLimit =
-        (appSettings?['setting_value']?['limit'] as num?)?.toInt() ?? 10;
-    return (rows as List).length < freeLimit;
+
+    final isPremiumSession = (session?['is_premium'] as bool?) ?? false;
+    if (isPremiumSession) {
+      await trackPaywallView('quiet_time', 'quiet_time_premium_library');
+      return hasFeature('quiet_time_premium_library');
+    }
+
+    if (await _isRevenueCatPremium()) return true;
+
+    final freeLimit = await _readSettingInt(
+      'free_quiet_time_session_limit',
+      fallback: _defaultFreeQuietTimeSessionLimit,
+    );
+
+    final history = await SupabaseService.client
+        .from('quiet_time_history')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('completed', true);
+
+    final completedCount = (history as List).length;
+    await _trackFeatureUsage(
+      'quiet_time_sessions_completed',
+      value: completedCount,
+    );
+    if (completedCount >= freeLimit) {
+      await trackPaywallView('quiet_time', 'quiet_time_premium_library');
+      return false;
+    }
+
+    return true;
+  }
+
+  Future<bool> canUseHelperMatching() => hasFeature('helper_matching');
+
+  Future<bool> canAccessGuidedProgram(String programId) {
+    return canAccessProgram(programId);
   }
 
   Future<bool> canAccessProgram(String programId) async {
@@ -166,12 +327,44 @@ class MonetizationService {
 
   Future<bool> isPremiumUser() => _isRevenueCatPremium();
 
-  Future<void> openPaywallForFeature(String featureKey) async {
+  Future<String> getCurrentPlan() async {
+    if (!SupabaseService.isInitialized ||
+        SupabaseService.currentUserId == null) {
+      return RevenueCatConfig.planFree;
+    }
+
+    final status =
+        _cachedPremiumStatus ??
+        await _subscriptionRepository.getCustomerStatus();
+    _cachedPremiumStatus = status;
+
+    if (!status.isPremium) return RevenueCatConfig.planFree;
+
+    final activeIds = status.activeProductIds;
+    if (activeIds.contains(RevenueCatConfig.productPremiumYearly)) {
+      return RevenueCatConfig.planPremiumYearly;
+    }
+    if (activeIds.contains(RevenueCatConfig.productPremiumMonthly)) {
+      return RevenueCatConfig.planPremiumMonthly;
+    }
+    if (activeIds.contains(RevenueCatConfig.productPremiumWeekly)) {
+      return RevenueCatConfig.planPremiumWeekly;
+    }
+
+    return RevenueCatConfig.planPremiumMonthly;
+  }
+
+  Future<void> showPaywallForFeature(String featureKey) async {
     await _trackPaywallEvent(
       screen: 'feature_gate',
       featureKey: featureKey,
       eventType: 'viewed',
     );
+    await _trackFeatureUsage('premium_feature_taps');
+  }
+
+  Future<void> openPaywallForFeature(String featureKey) {
+    return showPaywallForFeature(featureKey);
   }
 
   Future<bool> isChurchPlanActive(String organizationId) async {
@@ -192,15 +385,17 @@ class MonetizationService {
   }
 
   Future<void> trackUpgradeClick(String screen, String planCode) {
+    _trackFeatureUsage('upgrade_clicks');
     return _trackPaywallEvent(
       screen: screen,
       featureKey: 'upgrade',
-      eventType: 'selected_package',
+      eventType: 'clicked_upgrade',
       planCode: planCode,
     );
   }
 
   Future<void> trackPurchaseStarted(String screen, String planCode) {
+    _trackFeatureUsage('purchase_started');
     return _trackPaywallEvent(
       screen: screen,
       featureKey: 'premium_access',
@@ -215,8 +410,15 @@ class MonetizationService {
     required PurchaseResult result,
   }) {
     final eventType = result.cancelled
-        ? 'purchase_cancelled'
-        : (result.success ? 'purchase_success' : 'purchase_failed');
+        ? 'dismissed'
+        : (result.success ? 'purchased' : 'purchase_failed');
+
+    _trackFeatureUsage(
+      result.success
+          ? 'purchase_success'
+          : (result.cancelled ? 'purchase_cancelled' : 'purchase_failed'),
+    );
+
     return _trackPaywallEvent(
       screen: screen,
       featureKey: 'premium_access',
@@ -233,7 +435,8 @@ class MonetizationService {
     return _trackPaywallEvent(
       screen: screen,
       featureKey: 'premium_access',
-      eventType: 'restore_started',
+      eventType: 'viewed',
+      metadata: const {'action': 'restore_started'},
     );
   }
 
@@ -241,8 +444,9 @@ class MonetizationService {
     return _trackPaywallEvent(
       screen: screen,
       featureKey: 'premium_access',
-      eventType: result.success ? 'restore_success' : 'restore_failed',
+      eventType: 'restored',
       metadata: {
+        'restore_outcome': result.success ? 'success' : 'failed',
         'status': result.status,
         if (result.message != null) 'message': result.message,
       },
@@ -309,6 +513,15 @@ class MonetizationService {
     Map<String, dynamic>? metadata,
   }) async {
     if (!SupabaseService.isInitialized) return;
+    AppLogger.payment(
+      'Payment reference created',
+      data: {
+        'screen': screen,
+        'feature_key': featureKey,
+        'event_type': eventType,
+        'plan_code': planCode,
+      },
+    );
     await SupabaseService.client.from('paywall_events').insert({
       'user_id': SupabaseService.currentUser?.id,
       'screen': screen,
@@ -319,39 +532,123 @@ class MonetizationService {
     });
   }
 
+  Future<int> _readSettingInt(String key, {required int fallback}) async {
+    final value = await _readSettingValue(key);
+    if (value is num) return value.toInt();
+
+    if (value is Map) {
+      final map = Map<String, dynamic>.from(value);
+      final fromLimit = (map['limit'] as num?)?.toInt();
+      final fromAmount = (map['amount'] as num?)?.toInt();
+      return fromLimit ?? fromAmount ?? fallback;
+    }
+
+    return fallback;
+  }
+
+  Future<bool> _readSettingBool(String key, {required bool fallback}) async {
+    final value = await _readSettingValue(key);
+    if (value is bool) return value;
+
+    if (value is Map) {
+      final map = Map<String, dynamic>.from(value);
+      final enabled = map['enabled'];
+      if (enabled is bool) return enabled;
+    }
+
+    return fallback;
+  }
+
+  Future<dynamic> _readSettingValue(String key) async {
+    if (!SupabaseService.isInitialized) return null;
+
+    final row = await SupabaseService.client
+        .from('app_settings')
+        .select('value')
+        .eq('key', key)
+        .maybeSingle();
+
+    return row?['value'];
+  }
+
+  Future<void> _trackFeatureUsage(String featureKey, {int? value}) async {
+    if (!SupabaseService.isInitialized) return;
+
+    final userId = SupabaseService.currentUserId;
+    if (userId == null) return;
+
+    final periodStart = DateTime.now().toIso8601String().split('T').first;
+    final existing = await SupabaseService.client
+        .from('feature_usage')
+        .select('id,usage_count')
+        .eq('user_id', userId)
+        .eq('feature_key', featureKey)
+        .eq('usage_period', 'daily')
+        .eq('period_start', periodStart)
+        .maybeSingle();
+
+    if (existing == null) {
+      await SupabaseService.client.from('feature_usage').insert({
+        'user_id': userId,
+        'feature_key': featureKey,
+        'usage_count': value ?? 1,
+        'usage_period': 'daily',
+        'period_start': periodStart,
+      });
+      return;
+    }
+
+    final current = (existing['usage_count'] as num?)?.toInt() ?? 0;
+    await SupabaseService.client
+        .from('feature_usage')
+        .update({'usage_count': value ?? (current + 1)})
+        .eq('id', existing['id'] as String);
+  }
+
   static const mockPlans = [
     MonetizationPlan(
       id: 'free',
       code: 'free',
       name: 'Free',
-      description: 'Basic tracker, groups, prayer wall, and journal access.',
+      description: 'Build trust and daily habits with core growth tools.',
       planType: 'user',
       billingInterval: 'free',
       price: 0,
-      currency: 'GHS',
+      currency: 'USD',
+      trialDays: 0,
+    ),
+    MonetizationPlan(
+      id: 'premium_weekly',
+      code: 'premium_weekly',
+      name: 'Premium Weekly',
+      description: 'Try Premium for a week and unlock deeper support.',
+      planType: 'user',
+      billingInterval: 'weekly',
+      price: 3,
+      currency: 'USD',
       trialDays: 0,
     ),
     MonetizationPlan(
       id: 'premium_monthly',
       code: 'premium_monthly',
       name: 'Premium Monthly',
-      description: 'Unlimited goals, insights, premium groups, and programs.',
+      description: 'Stay consistent with full monthly access.',
       planType: 'user',
       billingInterval: 'monthly',
-      price: 25,
-      currency: 'GHS',
-      trialDays: 7,
+      price: 10,
+      currency: 'USD',
+      trialDays: 0,
     ),
     MonetizationPlan(
       id: 'premium_yearly',
       code: 'premium_yearly',
       name: 'Premium Yearly',
-      description: 'Best value yearly premium access.',
+      description: 'Best value for your full growth journey.',
       planType: 'user',
       billingInterval: 'yearly',
-      price: 250,
-      currency: 'GHS',
-      trialDays: 7,
+      price: 30,
+      currency: 'USD',
+      trialDays: 0,
     ),
     MonetizationPlan(
       id: 'church_starter',

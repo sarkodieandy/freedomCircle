@@ -25,14 +25,14 @@ class MoodSelectorCard extends StatelessWidget {
         curve: Curves.easeOutCubic,
         decoration: BoxDecoration(
           color: selected ? AppColors.softGreen : AppColors.card,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(
             color: selected ? AppColors.green : AppColors.line,
             width: selected ? 1.4 : 1,
           ),
         ),
         child: InkWell(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -52,7 +52,8 @@ class MoodSelectorCard extends StatelessWidget {
                 Flexible(
                   child: Text(
                     label,
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    style: AppTextStyles.body.copyWith(
+                      fontWeight: FontWeight.w600,
                       color: selected ? AppColors.green : AppColors.navy,
                     ),
                   ),

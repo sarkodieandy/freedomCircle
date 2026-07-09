@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../app/constants.dart';
 import '../../app/images.dart';
 import '../../core/animations/fade_slide_in.dart';
+import '../../core/utils/app_logger.dart';
 import 'auth_flow_controller.dart';
 import 'auth_success_screen.dart';
 import 'auth_widgets.dart';
@@ -59,6 +61,7 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   void _setMode(AuthMode value) {
+    AppLogger.auth('Auth mode changed', data: {'mode': value.name});
     setState(() {
       mode = value;
       errorMessage = null;
@@ -67,6 +70,10 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Future<void> _submit() async {
     if (loading) return;
+    AppLogger.auth(
+      'Auth submit tapped',
+      data: {'mode': isLogin ? 'login' : 'signup'},
+    );
     setState(() {
       loading = true;
       errorMessage = null;
@@ -78,28 +85,38 @@ class _AuthScreenState extends State<AuthScreen> {
           email: emailController.text,
           password: passwordController.text,
         );
+        AppLogger.auth('Login flow completed at screen level');
         if (!mounted) return;
         _openSuccess();
       } else {
+        final phone = phoneController.text.trim();
         await controller.signUpWithEmail(
           fullName: fullNameController.text,
           username: usernameController.text,
           email: emailController.text,
           password: passwordController.text,
           confirmPassword: confirmPasswordController.text,
-          phone: phoneController.text,
+          phone: phone,
           acceptedTerms: acceptedTerms,
         );
+        AppLogger.auth('Signup flow completed at screen level');
         if (!mounted) return;
         pushAuthScreen(
           context,
           OtpVerificationScreen(
             onVerified: _openSuccess,
-            emailOrPhone: emailController.text.trim(),
+            emailOrPhone: phone.isNotEmpty
+                ? phone
+                : emailController.text.trim(),
           ),
         );
       }
     } on AuthFlowException catch (error) {
+      AppLogger.warning(
+        'Validation or auth error shown to user',
+        tag: 'UI',
+        data: {'screen': 'AuthScreen', 'message': error.message},
+      );
       setState(() => errorMessage = error.message);
     } finally {
       if (mounted) {
@@ -109,6 +126,7 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   void _openSuccess() {
+    AppLogger.navigation('Auth success screen opened');
     pushAuthScreen(
       context,
       AuthSuccessScreen(onContinue: _completeAuthentication),
@@ -116,6 +134,7 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   void _completeAuthentication() {
+    AppLogger.navigation('Auth complete, redirecting to app shell');
     Navigator.of(context).popUntil((route) => route.isFirst);
     widget.onAuthenticated();
   }
@@ -146,17 +165,17 @@ class _AuthScreenState extends State<AuthScreen> {
               children: [
                 Text(title, style: Theme.of(context).textTheme.headlineMedium),
                 const SizedBox(height: 8),
-                Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
-                const SizedBox(height: 20),
+                Text(subtitle, style: AppTextStyles.body),
+                const SizedBox(height: AppSpacing.xl),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 260),
                   child: isLogin ? _loginFields() : _signupFields(),
                 ),
                 if (errorMessage != null) ...[
-                  const SizedBox(height: 14),
+                  const SizedBox(height: AppSpacing.md),
                   AuthErrorMessage(message: errorMessage!),
                 ],
-                const SizedBox(height: 18),
+                const SizedBox(height: AppSpacing.lg),
                 AuthPrimaryButton(
                   label: isLogin ? 'Login' : 'Create Account',
                   icon: isLogin
@@ -297,16 +316,16 @@ class _AuthCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: const Color(0xFFE8E2D8)),
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        border: Border.all(color: AppColors.line),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF172033).withValues(alpha: .07),
-            blurRadius: 30,
-            offset: const Offset(0, 18),
+            color: AppColors.navy.withValues(alpha: .04),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
           ),
         ],
       ),

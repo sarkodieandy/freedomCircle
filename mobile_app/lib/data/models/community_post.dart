@@ -28,7 +28,7 @@ class CommunityPost {
         'visible_author_name',
         fallback: readBool(map, 'is_anonymous')
             ? 'Anonymous member'
-            : readString(map, 'author', fallback: 'FreedomCircle member'),
+            : readString(map, 'author', fallback: 'freedonCircle member'),
       ),
       isAnonymous: readBool(map, 'is_anonymous', fallback: true),
       prayers: readInt(map, 'reaction_count'),

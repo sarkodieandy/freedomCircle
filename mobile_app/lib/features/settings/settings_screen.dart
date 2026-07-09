@@ -15,7 +15,9 @@ class SettingsScreen extends StatelessWidget {
   Future<void> _logout(BuildContext context) async {
     await _authRepository.signOut();
     if (!context.mounted) return;
-    Navigator.of(context).popUntil((route) => route.isFirst);
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil(AppRoutes.launch, (route) => false);
   }
 
   void _deleteAccountPlaceholder(BuildContext context) {

@@ -20,8 +20,9 @@ class ProgressRing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final clamped = progress.clamp(0.0, 1.0);
     return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: progress),
+      tween: Tween(begin: 0, end: clamped),
       duration: const Duration(milliseconds: 900),
       curve: Curves.easeOutCubic,
       builder: (context, value, child) => SizedBox(
@@ -30,13 +31,27 @@ class ProgressRing extends StatelessWidget {
         child: CustomPaint(
           painter: _RingPainter(progress: value, color: color),
           child: Center(
-            child: label == null
-                ? const Icon(
-                    Icons.eco_rounded,
-                    size: 18,
-                    color: AppColors.green,
-                  )
-                : Text(label!, style: Theme.of(context).textTheme.labelLarge),
+            child: Container(
+              width: size * .62,
+              height: size * .62,
+              decoration: BoxDecoration(
+                color: AppColors.card,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.line),
+              ),
+              child: Center(
+                child: label == null
+                    ? const Icon(
+                        Icons.eco_rounded,
+                        size: 18,
+                        color: AppColors.green,
+                      )
+                    : Text(
+                        label!,
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
+              ),
+            ),
           ),
         ),
       ),
@@ -55,7 +70,7 @@ class _RingPainter extends CustomPainter {
     final stroke = size.width * .09;
     final rect = Offset.zero & size;
     final background = Paint()
-      ..color = AppColors.inkSoft
+      ..color = AppColors.mintGreen
       ..style = PaintingStyle.stroke
       ..strokeWidth = stroke
       ..strokeCap = StrokeCap.round;

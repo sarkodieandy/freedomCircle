@@ -11,6 +11,15 @@ class RevenueCatConfig {
   static const entitlementPremium = 'premium';
   static const defaultOfferingId = 'default';
 
+  static const productPremiumWeekly = 'freedomcircle_premium_weekly';
+  static const productPremiumMonthly = 'freedomcircle_premium_monthly';
+  static const productPremiumYearly = 'freedomcircle_premium_yearly';
+
+  static const planFree = 'free';
+  static const planPremiumWeekly = 'premium_weekly';
+  static const planPremiumMonthly = 'premium_monthly';
+  static const planPremiumYearly = 'premium_yearly';
+
   static String get dartDefineHelp =>
       '--dart-define=REVENUECAT_IOS_API_KEY=... '
       '--dart-define=REVENUECAT_ANDROID_API_KEY=...';
@@ -42,5 +51,18 @@ class RevenueCatConfig {
     throw UnsupportedError(
       'RevenueCat is only supported on iOS and Android in this app.',
     );
+  }
+
+  static String planCodeForProductId(String productId) {
+    switch (productId) {
+      case productPremiumWeekly:
+        return planPremiumWeekly;
+      case productPremiumMonthly:
+        return planPremiumMonthly;
+      case productPremiumYearly:
+        return planPremiumYearly;
+      default:
+        return planFree;
+    }
   }
 }

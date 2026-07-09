@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../app/constants.dart';
+import '../../core/animations/success_check_animation.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/app_section_header.dart';
 import '../../core/widgets/screen_shell.dart';
 import 'prayer_request_card.dart';
 
@@ -62,7 +64,10 @@ class _PrayerWallScreenState extends State<PrayerWallScreen> {
           ),
         ),
         const SizedBox(height: 18),
-        Text('Prayer requests', style: Theme.of(context).textTheme.titleLarge),
+        const AppSectionHeader(
+          title: 'Prayer requests',
+          subtitle: 'Lift one another with practical, kind prayer.',
+        ),
         const SizedBox(height: 10),
         const PrayerRequestCard(
           title: 'Quiet mind tonight',
@@ -79,9 +84,9 @@ class _PrayerWallScreenState extends State<PrayerWallScreen> {
           answered: true,
         ),
         const SizedBox(height: 4),
-        Text(
-          'Group prayer requests',
-          style: Theme.of(context).textTheme.titleLarge,
+        const AppSectionHeader(
+          title: 'Group prayer requests',
+          subtitle: 'Shared needs from your circles and communities.',
         ),
         const SizedBox(height: 10),
         const PrayerRequestCard(
@@ -139,26 +144,7 @@ class _PrayerWallScreenState extends State<PrayerWallScreen> {
     return Column(
       key: const ValueKey('request-success'),
       children: [
-        TweenAnimationBuilder<double>(
-          tween: Tween(begin: .72, end: 1),
-          duration: const Duration(milliseconds: 520),
-          curve: Curves.easeOutBack,
-          builder: (context, value, child) =>
-              Transform.scale(scale: value, child: child),
-          child: Container(
-            width: 86,
-            height: 86,
-            decoration: BoxDecoration(
-              color: AppColors.softGreen,
-              borderRadius: BorderRadius.circular(30),
-            ),
-            child: const Icon(
-              Icons.volunteer_activism_rounded,
-              color: AppColors.green,
-              size: 42,
-            ),
-          ),
-        ),
+        const SuccessCheckAnimation(size: 92),
         const SizedBox(height: 16),
         Text(
           'Prayer request submitted',

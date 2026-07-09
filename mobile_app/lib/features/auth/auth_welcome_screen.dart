@@ -38,7 +38,7 @@ class AuthWelcomeScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'FreedomCircle',
+                      'freedonCircle',
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     const SizedBox(height: 3),

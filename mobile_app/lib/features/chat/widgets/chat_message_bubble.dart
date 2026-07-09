@@ -23,6 +23,10 @@ class ChatMessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hidden = message.isDeleted;
+    final bg = isMine
+        ? AppColors.green
+        : (message.isAnonymous ? AppColors.softGreen : AppColors.card);
+
     return Align(
       alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
       child: GestureDetector(
@@ -33,22 +37,53 @@ class ChatMessageBubble extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 10),
             padding: const EdgeInsets.all(13),
             decoration: BoxDecoration(
-              color: isMine ? AppColors.green : AppColors.card,
-              borderRadius: BorderRadius.circular(20).copyWith(
+              color: bg,
+              borderRadius: BorderRadius.circular(AppRadius.lg).copyWith(
                 bottomRight: Radius.circular(isMine ? 4 : 20),
                 bottomLeft: Radius.circular(isMine ? 20 : 4),
               ),
-              border: Border.all(color: AppColors.line),
+              border: Border.all(
+                color: isMine
+                    ? AppColors.green.withValues(alpha: .2)
+                    : AppColors.line,
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (!isMine)
-                  Text(
-                    message.isAnonymous ? 'Anonymous member' : 'Member',
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: isMine ? Colors.white : AppColors.green,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        message.isAnonymous ? 'Anonymous' : 'Member',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: AppColors.green,
+                          fontSize: 12,
+                        ),
+                      ),
+                      if (message.metadata['is_moderator'] == true) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppColors.gold),
+                            color: AppColors.paleGold,
+                          ),
+                          child: const Text(
+                            'Moderator',
+                            style: TextStyle(
+                              color: AppColors.deepGreen,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 Text(
                   hidden ? 'Message removed' : (message.body ?? ''),
@@ -96,6 +131,7 @@ class ChatMessageBubble extends StatelessWidget {
                   MessageReactionBar(
                     messageId: message.id,
                     onReaction: onReaction,
+                    compact: true,
                   ),
               ],
             ),

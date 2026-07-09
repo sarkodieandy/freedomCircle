@@ -9,6 +9,7 @@ class Profile {
     this.avatarUrl,
     this.churchName,
     this.isAnonymousEnabled = true,
+    this.isOnboardingCompleted = false,
   });
 
   final String id;
@@ -18,16 +19,22 @@ class Profile {
   final String? avatarUrl;
   final String? churchName;
   final bool isAnonymousEnabled;
+  final bool isOnboardingCompleted;
 
   factory Profile.fromMap(JsonMap map) {
     return Profile(
       id: readString(map, 'id'),
-      fullName: readString(map, 'full_name', fallback: 'FreedomCircle member'),
+      fullName: readString(map, 'full_name', fallback: 'freedonCircle member'),
       username: readString(map, 'username'),
       role: readString(map, 'role', fallback: 'user'),
       avatarUrl: readNullableString(map, 'avatar_url'),
       churchName: readNullableString(map, 'church_name'),
       isAnonymousEnabled: readBool(map, 'is_anonymous_enabled', fallback: true),
+      isOnboardingCompleted: readBool(
+        map,
+        'onboarding_completed',
+        fallback: false,
+      ),
     );
   }
 }

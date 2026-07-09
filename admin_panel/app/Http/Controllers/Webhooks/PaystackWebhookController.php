@@ -2,16 +2,20 @@
 
 namespace App\Http\Controllers\Webhooks;
 
+use App\Services\PaymentService;
 use App\Services\SupabaseAdminService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class PaystackWebhookController
 {
-    public function __construct(private readonly SupabaseAdminService $supabase)
+    public function __construct(
+        private readonly SupabaseAdminService $supabase,
+        private readonly PaymentService $paymentService,
+    )
     {
     }
 
@@ -27,6 +31,11 @@ class PaystackWebhookController
 
         $event = $request->json()->all();
         $eventName = (string) ($event['event'] ?? '');
+        $eventId = (string) ($event['data']['id'] ?? $event['data']['reference'] ?? '');
+
+        if ($eventId !== '' && $this->isDuplicate($eventId, $eventName)) {
+            return response()->json(['message' => 'Duplicate webhook ignored']);
+        }
 
         try {
             match ($eventName) {
@@ -36,6 +45,10 @@ class PaystackWebhookController
                 'subscription.disable' => $this->handleSubscriptionEvent($event),
                 default => Log::info('Ignored Paystack webhook event.', ['event' => $eventName]),
             };
+
+            if ($eventId !== '') {
+                $this->storeWebhookEvent($eventId, $eventName, $event);
+            }
         } catch (Throwable $exception) {
             Log::error('Paystack webhook processing failed.', [
                 'event' => $eventName,
@@ -59,30 +72,7 @@ class PaystackWebhookController
             return;
         }
 
-        $verification = $this->verifyPaystackTransaction($reference);
-        $verifiedData = $verification['data'] ?? [];
-        $status = (string) ($verifiedData['status'] ?? $data['status'] ?? '');
-
-        if ($status !== 'success') {
-            $this->supabase->markPaymentFailedByReference($reference, $status, [
-                'paystack_event' => 'charge.success',
-                'paystack_reference' => $reference,
-            ]);
-
-            return;
-        }
-
-        $providerFee = isset($verifiedData['fees'])
-            ? round(((float) $verifiedData['fees']) / 100, 2)
-            : null;
-
-        $this->supabase->markPaymentSuccessfulByReference($reference, 'success', $providerFee, [
-            'paystack_event' => 'charge.success',
-            'paystack_reference' => $reference,
-            'paystack_channel' => $verifiedData['channel'] ?? null,
-            'paystack_paid_at' => $verifiedData['paid_at'] ?? null,
-            'paystack_customer_email' => $verifiedData['customer']['email'] ?? null,
-        ]);
+        $this->paymentService->applyPaystackWebhookCharge($event);
     }
 
     private function handleSubscriptionEvent(array $event): void
@@ -131,13 +121,26 @@ class PaystackWebhookController
         return hash_equals($expected, $signature);
     }
 
-    private function verifyPaystackTransaction(string $reference): array
+    private function isDuplicate(string $eventId, string $eventType): bool
     {
-        return Http::withToken($this->paystackSecretKey())
-            ->acceptJson()
-            ->get('https://api.paystack.co/transaction/verify/' . rawurlencode($reference))
-            ->throw()
-            ->json();
+        return DB::table('webhook_events')
+            ->where('provider', 'paystack')
+            ->where('provider_event_id', $eventId)
+            ->where('event_type', $eventType)
+            ->exists();
+    }
+
+    private function storeWebhookEvent(string $eventId, string $eventType, array $payload): void
+    {
+        DB::table('webhook_events')->insert([
+            'provider' => 'paystack',
+            'provider_event_id' => $eventId,
+            'event_type' => $eventType,
+            'payload' => json_encode($payload, JSON_THROW_ON_ERROR),
+            'processed_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     private function mapSubscriptionStatus(string $paystackStatus): string

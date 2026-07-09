@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/constants.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/common_widgets.dart';
 
 class QuietTimeCategoryCard extends StatelessWidget {
   const QuietTimeCategoryCard({
@@ -24,21 +25,13 @@ class QuietTimeCategoryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.softGreen,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(icon, color: AppColors.green),
-          ),
+          AppIconContainer(icon: icon),
           const SizedBox(height: 12),
-          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          Text(title, style: AppTextStyles.cardTitle),
           const SizedBox(height: 6),
           Text(
             description,
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: AppTextStyles.body,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),

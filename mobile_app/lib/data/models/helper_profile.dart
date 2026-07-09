@@ -39,14 +39,14 @@ class HelperProfile {
       name: readString(
         map,
         'display_name',
-        fallback: readString(map, 'name', fallback: 'FreedomCircle helper'),
+        fallback: readString(map, 'name', fallback: 'freedonCircle helper'),
       ),
       photoUrl: readString(
         map,
         'profile_photo_url',
         fallback: readString(map, 'photo_url'),
       ),
-      organization: readString(map, 'organization', fallback: 'FreedomCircle'),
+      organization: readString(map, 'organization', fallback: 'freedonCircle'),
       focusAreas: readStringList(map, 'focus_areas'),
       rating: readDouble(map, 'rating'),
       price: price == 0 ? 'Free intro' : '$currency $price/session',

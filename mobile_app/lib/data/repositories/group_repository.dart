@@ -1,9 +1,13 @@
 import '../models/accountability_group.dart';
 import '../models/group_member.dart';
+import '../../core/services/monetization_service.dart';
+import '../supabase/supabase_service.dart';
 import 'supabase_repository.dart';
 
 class GroupRepository extends SupabaseRepository {
   const GroupRepository({super.supabaseClient});
+
+  String? get _currentUserId => SupabaseService.currentUserId;
 
   Future<List<AccountabilityGroup>> getPublicGroups() => groups();
 
@@ -71,6 +75,107 @@ class GroupRepository extends SupabaseRepository {
 
   Future<GroupMember> requestJoinGroup(String groupId, String userId) =>
       requestToJoin(groupId, userId);
+
+  Future<GroupMember?> getMembership(String groupId, String userId) {
+    return guard(() async {
+      final row = await client
+          .from('group_members')
+          .select()
+          .eq('group_id', groupId)
+          .eq('user_id', userId)
+          .maybeSingle();
+      return row == null ? null : GroupMember.fromMap(mapRow(row));
+    });
+  }
+
+  Future<GroupMember> joinGroup({
+    required String groupId,
+    required String userId,
+    bool autoApprove = false,
+  }) {
+    return guard(() async {
+      final row = await client
+          .from('group_members')
+          .upsert({
+            'group_id': groupId,
+            'user_id': userId,
+            'role': 'member',
+            'status': autoApprove ? 'approved' : 'pending',
+          }, onConflict: 'group_id,user_id')
+          .select()
+          .single();
+      return GroupMember.fromMap(mapRow(row));
+    });
+  }
+
+  Future<bool> canCurrentUserCreatePremiumGroup() {
+    return MonetizationService.instance.hasFeature('premium_groups');
+  }
+
+  Future<AccountabilityGroup> createGroupAndJoinAsOwner({
+    required String name,
+    required String description,
+    required String visibility,
+    required String groupType,
+    required bool isPremium,
+    String? coverImageUrl,
+  }) {
+    return guard(() async {
+      final userId = _currentUserId;
+      if (userId == null) {
+        throw StateError('You must be logged in to create a group.');
+      }
+
+      final insertRow = await client
+          .from('groups')
+          .insert({
+            'owner_id': userId,
+            'name': name,
+            'description': description,
+            'visibility': visibility,
+            'group_type': groupType,
+            'is_premium': isPremium,
+            if (coverImageUrl != null && coverImageUrl.isNotEmpty)
+              'cover_image_url': coverImageUrl,
+          })
+          .select()
+          .single();
+
+      final groupId = mapRow(insertRow)['id']?.toString() ?? '';
+      if (groupId.isEmpty) {
+        throw StateError('Group creation did not return a valid id.');
+      }
+
+      await client.from('group_members').upsert({
+        'group_id': groupId,
+        'user_id': userId,
+        'role': 'owner',
+        'status': 'approved',
+      }, onConflict: 'group_id,user_id');
+
+      await getOrCreateGroupConversationId(groupId);
+
+      final card = await getGroupById(groupId);
+      if (card != null) return card;
+      return AccountabilityGroup.fromMap(mapRow(insertRow));
+    });
+  }
+
+  Future<String> getOrCreateGroupConversationId(
+    String groupId, {
+    bool prayerGroup = false,
+  }) {
+    return guard(() async {
+      final result = await client.rpc(
+        'get_or_create_group_chat',
+        params: {
+          'group_uuid': groupId,
+          'conversation_kind': prayerGroup ? 'prayer_group' : 'group',
+        },
+      );
+      return result?.toString() ?? '';
+    });
+  }
 
   Future<void> leaveGroup(String groupId, String userId) {
     return guard(() async {

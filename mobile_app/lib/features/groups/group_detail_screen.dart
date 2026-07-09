@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../app/constants.dart';
 import '../../core/animations/fade_slide_in.dart';
+import '../../core/services/monetization_service.dart';
 import '../../data/models/accountability_group.dart';
+import '../../data/models/group_member.dart';
+import '../../data/repositories/group_repository.dart';
+import '../../data/supabase/supabase_service.dart';
 import '../../core/widgets/app_buttons.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/badges.dart';
@@ -11,12 +15,149 @@ import '../../core/widgets/progress_ring.dart';
 import '../../core/widgets/remote_image.dart';
 import '../chat/group_chat_screen.dart';
 import '../checkin/daily_check_in_sheet.dart';
+import '../monetization/feature_locked_modal.dart';
 import '../prayer/prayer_request_card.dart';
 
-class GroupDetailScreen extends StatelessWidget {
+class GroupDetailScreen extends StatefulWidget {
   const GroupDetailScreen({super.key, required this.group});
 
   final AccountabilityGroup group;
+
+  @override
+  State<GroupDetailScreen> createState() => _GroupDetailScreenState();
+}
+
+class _GroupDetailScreenState extends State<GroupDetailScreen> {
+  final GroupRepository _groupRepository = const GroupRepository();
+  GroupMember? _membership;
+  bool _busy = false;
+
+  bool get _isMemberApproved => _membership?.status == 'approved';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMembership();
+  }
+
+  Future<void> _loadMembership() async {
+    final userId = SupabaseService.currentUserId;
+    if (userId == null || widget.group.id.isEmpty) return;
+
+    final membership = await _groupRepository.getMembership(
+      widget.group.id,
+      userId,
+    );
+    if (!mounted) return;
+    setState(() => _membership = membership);
+  }
+
+  Future<void> _handleJoinOrOpen() async {
+    if (_busy) return;
+    if (_isMemberApproved) {
+      if (!mounted) return;
+      pushScreen(
+        context,
+        GroupChatScreen(groupId: widget.group.id, title: widget.group.name),
+      );
+      return;
+    }
+
+    if (widget.group.isPremium) {
+      final allowed = await MonetizationService.instance.canAccessPremiumGroup(
+        widget.group.id,
+      );
+      if (!mounted) return;
+      if (!allowed) {
+        await FeatureLockedModal.show(
+          context,
+          featureKey: 'premium_groups',
+          featureName: 'Join premium accountability circles',
+          reason:
+              'Premium groups include guided check-ins, devotion prompts, and deeper accountability.',
+          benefits: const [
+            'Guided weekly check-ins',
+            'Premium recovery and devotion circles',
+            'More structured support',
+          ],
+          screen: 'group_detail',
+        );
+        return;
+      }
+    }
+
+    final userId = SupabaseService.currentUserId;
+    if (userId == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please sign in again to join this group.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final canJoin = await MonetizationService.instance.canJoinGroup(
+      widget.group.id,
+    );
+    if (!mounted) return;
+    if (!canJoin) {
+      await FeatureLockedModal.show(
+        context,
+        featureKey: 'premium_groups',
+        featureName: 'Join more accountability circles',
+        reason: 'You reached the free plan group limit.',
+        benefits: const [
+          'Join more groups and circles',
+          'Access premium accountability communities',
+          'Deeper support network options',
+        ],
+        screen: 'group_detail',
+      );
+      return;
+    }
+
+    final autoApprove = widget.group.type.toLowerCase().contains('public');
+    setState(() => _busy = true);
+    try {
+      final membership = await _groupRepository.joinGroup(
+        groupId: widget.group.id,
+        userId: userId,
+        autoApprove: autoApprove,
+      );
+      if (!mounted) return;
+      setState(() => _membership = membership);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            autoApprove
+                ? 'You joined ${widget.group.name}.'
+                : 'Join request sent to ${widget.group.name}.',
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not complete group request: $error'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  String get _ctaLabel {
+    if (_isMemberApproved) return 'Open group chat';
+    if (_membership?.status == 'pending') return 'Request pending';
+    return widget.group.type.toLowerCase().contains('public')
+        ? 'Join circle'
+        : 'Request access';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,12 +172,12 @@ class GroupDetailScreen extends StatelessWidget {
               backgroundColor: AppColors.background,
               foregroundColor: AppColors.navy,
               flexibleSpace: FlexibleSpaceBar(
-                title: Text(group.name),
+                title: Text(widget.group.name),
                 background: Stack(
                   fit: StackFit.expand,
                   children: [
                     RemoteImage(
-                      imageUrl: group.imageUrl,
+                      imageUrl: widget.group.imageUrl,
                       borderRadius: BorderRadius.zero,
                     ),
                     DecoratedBox(
@@ -61,9 +202,9 @@ class GroupDetailScreen extends StatelessWidget {
           ],
           body: TabBarView(
             children: [
-              _GroupChatTab(group: group),
+              _GroupChatTab(group: widget.group),
               const _GroupPrayerTab(),
-              _GroupCheckInTab(group: group),
+              _GroupCheckInTab(group: widget.group),
               const _GroupLeaderboardTab(),
               const _GroupResourcesTab(),
             ],
@@ -73,9 +214,12 @@ class GroupDetailScreen extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             child: PrimaryButton(
-              label: group.type == 'Public' ? 'Join circle' : 'Request access',
+              label: _ctaLabel,
               icon: Icons.person_add_alt_1_rounded,
-              onPressed: () => showComingSoon(context, 'Group access'),
+              onPressed: () {
+                if (_busy || _membership?.status == 'pending') return;
+                _handleJoinOrOpen();
+              },
             ),
           ),
         ),
@@ -486,6 +630,7 @@ class _GroupResourcesTab extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: AppCard(
+              onTap: () => showComingSoon(context, resource.$1),
               child: Row(
                 children: [
                   Icon(resource.$2, color: AppColors.green),

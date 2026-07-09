@@ -9,6 +9,15 @@ class QuietTimeRepository extends qt.QuietTimeRepository {
 
   Future<List<QuietTimeSession>> getQuietTimeSessions() => sessions();
 
+  Future<String?> getSignedVideoUrl(String sessionId) =>
+      signedVideoUrl(sessionId);
+
+  Future<bool> canAccessQuietTimeVideo(String sessionId) async {
+    final session = await getSessionById(sessionId);
+    if (session == null) return false;
+    return canAccessVideoSession(session);
+  }
+
   Future<QuietTimeSession?> getSessionById(String sessionId) async {
     final all = await sessions();
     for (final session in all) {

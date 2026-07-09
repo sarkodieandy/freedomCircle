@@ -3,9 +3,8 @@ import 'package:flutter/material.dart';
 import '../../app/constants.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/common_widgets.dart';
-import '../monetization/feature_locked_modal.dart';
 import 'quiet_time_models.dart';
-import 'quiet_time_player_screen.dart';
+import 'quiet_time_video_feed_screen.dart';
 import 'quiet_time_repository.dart';
 import 'widgets/guided_session_card.dart';
 
@@ -30,27 +29,17 @@ class _QuietTimeSessionScreenState extends State<QuietTimeSessionScreen> {
         : _repository.sessionsByCategory(widget.category!.slug);
   }
 
-  Future<void> _openSession(QuietTimeSession session) async {
-    final allowed = await _repository.canAccessSession(session);
-    if (!mounted) return;
-    if (!allowed) {
-      await FeatureLockedModal.show(
-        context,
-        featureKey: 'quiet_time_premium_library',
-        featureName: 'Quiet Time premium library',
-        reason: 'This session is part of the premium Quiet Time library.',
-        benefits: const [
-          'Longer guided sessions',
-          'Premium recovery reset audio',
-          'Night peace and surrender journeys',
-        ],
-        screen: 'quiet_time_session_list',
-      );
-      return;
-    }
+  void _openSession(
+    QuietTimeSession session,
+    List<QuietTimeSession> allSessions,
+  ) {
+    final idx = allSessions.indexWhere((s) => s.id == session.id);
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => QuietTimePlayerScreen(session: session),
+        builder: (_) => QuietTimeVideoFeedScreen(
+          sessions: allSessions,
+          initialIndex: idx >= 0 ? idx : 0,
+        ),
       ),
     );
   }
@@ -121,13 +110,13 @@ class _QuietTimeSessionScreenState extends State<QuietTimeSessionScreen> {
                         category: widget.category?.name ?? 'Quiet Time',
                         isPremium: sessions[i].isPremium,
                         locked: sessions[i].isPremium,
-                        onStart: () => _openSession(sessions[i]),
+                        onStart: () => _openSession(sessions[i], sessions),
                       ),
                     ),
                   ),
                 const SizedBox(height: 6),
                 Text(
-                  'FreedomCircle offers spiritual support and accountability. For urgent or serious concerns, reach out to a trusted person, qualified professional, or local emergency support.',
+                  'freedonCircle offers spiritual support and accountability. For urgent or serious concerns, reach out to a trusted person, qualified professional, or local emergency support.',
                   style: Theme.of(
                     context,
                   ).textTheme.bodyMedium?.copyWith(color: AppColors.support),

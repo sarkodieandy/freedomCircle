@@ -4,10 +4,9 @@ import '../../app/constants.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/badges.dart';
 import '../../core/widgets/common_widgets.dart';
-import '../monetization/feature_locked_modal.dart';
 import 'quiet_time_history_screen.dart';
 import 'quiet_time_models.dart';
-import 'quiet_time_player_screen.dart';
+import 'quiet_time_video_feed_screen.dart';
 import 'quiet_time_repository.dart';
 import 'quiet_time_session_screen.dart';
 import 'widgets/guided_session_card.dart';
@@ -35,32 +34,10 @@ class _QuietTimeHomeScreenState extends State<QuietTimeHomeScreen> {
     _historyFuture = _repository.historySummary();
   }
 
-  Future<void> _openSession(QuietTimeSession session) async {
-    final allowed = await _repository.canAccessSession(session);
-    if (!mounted) return;
-    if (!allowed) {
-      await FeatureLockedModal.show(
-        context,
-        featureKey: 'quiet_time_premium_library',
-        featureName: 'Quiet Time premium library',
-        reason:
-            'Premium unlocks deeper guided prayer sessions, recovery resets, and night peace audio journeys.',
-        benefits: const [
-          'Full guided Quiet Time audio library',
-          'Long-form recovery reset sessions',
-          'Night peace and surrender journeys',
-        ],
-        screen: 'quiet_time_home',
-      );
-      return;
-    }
-    if (!mounted) return;
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) =>
-            QuietTimePlayerScreen(session: session, initialMood: _selectedMood),
-      ),
-    );
+  void _openSession(QuietTimeSession session) {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const QuietTimeVideoFeedScreen()));
   }
 
   IconData _categoryIcon(String key) {
@@ -116,23 +93,17 @@ class _QuietTimeHomeScreenState extends State<QuietTimeHomeScreen> {
                                     children: [
                                       Text(
                                         'Quiet Time',
-                                        style: Theme.of(
-                                          context,
-                                        ).textTheme.headlineMedium,
+                                        style: AppTextStyles.screenTitle,
                                       ),
                                       const SizedBox(height: 6),
                                       Text(
                                         'Guided prayer, stillness, and reflection for your journey.',
-                                        style: Theme.of(
-                                          context,
-                                        ).textTheme.bodyMedium,
+                                        style: AppTextStyles.body,
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
                                         'Pause, breathe, pray, and continue with grace.',
-                                        style: Theme.of(
-                                          context,
-                                        ).textTheme.bodyMedium,
+                                        style: AppTextStyles.caption,
                                       ),
                                     ],
                                   ),
@@ -151,9 +122,92 @@ class _QuietTimeHomeScreenState extends State<QuietTimeHomeScreen> {
                               ],
                             ),
                             const SizedBox(height: 16),
+                            // ── TikTok-style video feed entry ──────────
+                            GestureDetector(
+                              onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const QuietTimeVideoFeedScreen(),
+                                ),
+                              ),
+                              child: Container(
+                                width: double.infinity,
+                                height: 108,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.lg,
+                                  ),
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      Color(0xFF0D2818),
+                                      Color(0xFF1C2B44),
+                                    ],
+                                  ),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 50,
+                                      height: 50,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: AppColors.softGreen.withValues(
+                                          alpha: 0.18,
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.play_circle_filled_rounded,
+                                        color: AppColors.softGreen,
+                                        size: 32,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          const Text(
+                                            'Watch Quiet Time',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 17,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'Scroll through guided video sessions',
+                                            style: TextStyle(
+                                              color: Colors.white.withValues(
+                                                alpha: 0.58,
+                                              ),
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const Icon(
+                                      Icons.arrow_forward_ios_rounded,
+                                      color: Colors.white30,
+                                      size: 16,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
                             Text(
                               'How are you feeling?',
-                              style: Theme.of(context).textTheme.titleLarge,
+                              style: AppTextStyles.sectionTitle,
                             ),
                             const SizedBox(height: 8),
                             Wrap(
@@ -183,7 +237,10 @@ class _QuietTimeHomeScreenState extends State<QuietTimeHomeScreen> {
                               ],
                             ),
                             const SizedBox(height: 18),
-                            SectionHeader(title: 'Recommended for now'),
+                            const SectionHeader(
+                              title: 'Recommended for now',
+                              leadingIcon: Icons.auto_awesome_rounded,
+                            ),
                             const SizedBox(height: 10),
                             if (recommended.isNotEmpty)
                               GuidedSessionCard(
@@ -209,11 +266,10 @@ class _QuietTimeHomeScreenState extends State<QuietTimeHomeScreen> {
                                 onTap: () => _openSession(lastSession),
                                 child: Row(
                                   children: [
-                                    const Icon(
-                                      Icons.history_rounded,
-                                      color: AppColors.green,
+                                    const AppIconContainer(
+                                      icon: Icons.history_rounded,
                                     ),
-                                    const SizedBox(width: 10),
+                                    const SizedBox(width: AppSpacing.sm),
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment:
@@ -221,15 +277,11 @@ class _QuietTimeHomeScreenState extends State<QuietTimeHomeScreen> {
                                         children: [
                                           Text(
                                             'Continue last session',
-                                            style: Theme.of(
-                                              context,
-                                            ).textTheme.titleMedium,
+                                            style: AppTextStyles.cardTitle,
                                           ),
                                           Text(
                                             '${lastSession.title} • ${lastSession.durationLabel}',
-                                            style: Theme.of(
-                                              context,
-                                            ).textTheme.bodyMedium,
+                                            style: AppTextStyles.caption,
                                           ),
                                         ],
                                       ),
@@ -242,7 +294,10 @@ class _QuietTimeHomeScreenState extends State<QuietTimeHomeScreen> {
                                 ),
                               ),
                             const SizedBox(height: 18),
-                            SectionHeader(title: 'Quiet Time categories'),
+                            const SectionHeader(
+                              title: 'Quiet Time categories',
+                              leadingIcon: Icons.category_rounded,
+                            ),
                             const SizedBox(height: 10),
                             GridView.builder(
                               itemCount: categories.length,
@@ -276,6 +331,7 @@ class _QuietTimeHomeScreenState extends State<QuietTimeHomeScreen> {
                             const SizedBox(height: 18),
                             SectionHeader(
                               title: 'Recent Quiet Time',
+                              leadingIcon: Icons.update_rounded,
                               action: 'History',
                               onAction: () {
                                 Navigator.of(context).push(
@@ -297,27 +353,23 @@ class _QuietTimeHomeScreenState extends State<QuietTimeHomeScreen> {
                                 child: AppCard(
                                   child: Row(
                                     children: [
-                                      const Icon(
-                                        Icons.check_circle_rounded,
+                                      const AppIconContainer(
+                                        icon: Icons.check_circle_rounded,
                                         color: AppColors.success,
                                       ),
-                                      const SizedBox(width: 10),
+                                      const SizedBox(width: AppSpacing.sm),
                                       Expanded(
                                         child: Text(
                                           history
                                                   .recentHistory[i]
                                                   .sessionTitle ??
                                               'Quiet session',
-                                          style: Theme.of(
-                                            context,
-                                          ).textTheme.titleMedium,
+                                          style: AppTextStyles.cardTitle,
                                         ),
                                       ),
                                       Text(
                                         '${(history.recentHistory[i].durationCompletedSeconds / 60).round()} min',
-                                        style: Theme.of(
-                                          context,
-                                        ).textTheme.bodyMedium,
+                                        style: AppTextStyles.caption,
                                       ),
                                     ],
                                   ),
@@ -326,42 +378,26 @@ class _QuietTimeHomeScreenState extends State<QuietTimeHomeScreen> {
                             const SizedBox(height: 6),
                             AppCard(
                               color: AppColors.navy,
-                              onTap: () async {
-                                final enabled = await _repository
-                                    .canAccessSession(
-                                      QuietTimeRepository.mockSessions
-                                          .firstWhere((item) => item.isPremium),
-                                    );
-                                if (!context.mounted || enabled) return;
-                                await FeatureLockedModal.show(
-                                  context,
-                                  featureKey: 'quiet_time_premium_library',
-                                  featureName:
-                                      'Premium Quiet Time audio library',
-                                  reason:
-                                      'Unlock premium guided audio sessions, deeper scripture stillness, and recovery resets.',
-                                  benefits: const [
-                                    'Extended guided sessions',
-                                    'Premium night peace audio',
-                                    'Offline sessions (premium)',
-                                  ],
-                                  screen: 'quiet_time_library_preview',
-                                );
-                              },
+                              onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const QuietTimeVideoFeedScreen(),
+                                ),
+                              ),
                               child: Row(
                                 children: [
-                                  const Icon(
-                                    Icons.library_music_rounded,
+                                  const AppIconContainer(
+                                    icon: Icons.library_music_rounded,
                                     color: AppColors.gold,
                                   ),
-                                  const SizedBox(width: 12),
+                                  const SizedBox(width: AppSpacing.md),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'Premium audio library preview',
+                                          'Premium video library preview',
                                           style: Theme.of(context)
                                               .textTheme
                                               .titleMedium
@@ -369,10 +405,10 @@ class _QuietTimeHomeScreenState extends State<QuietTimeHomeScreen> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          'Night Peace, Surrender the Struggle, Deep Scripture Stillness, and more.',
+                                          'Night Peace, Surrender the Struggle, Deep Scripture Stillness videos, and more.',
                                           style: Theme.of(context)
                                               .textTheme
-                                              .bodyMedium
+                                              .bodySmall
                                               ?.copyWith(color: Colors.white70),
                                         ),
                                       ],

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/constants.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/badges.dart';
+import '../../../core/widgets/common_widgets.dart';
 
 class GuidedSessionCard extends StatelessWidget {
   const GuidedSessionCard({
@@ -32,29 +33,19 @@ class GuidedSessionCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: AppColors.softGreen,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Icon(
-                  Icons.headphones_rounded,
-                  color: AppColors.green,
-                ),
+              const AppIconContainer(
+                icon: Icons.headphones_rounded,
+                size: 50,
+                iconSize: 22,
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: Theme.of(context).textTheme.titleMedium),
+                    Text(title, style: AppTextStyles.cardTitle),
                     const SizedBox(height: 2),
-                    Text(
-                      '$duration • $category',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
+                    Text('$duration • $category', style: AppTextStyles.caption),
                   ],
                 ),
               ),
@@ -75,7 +66,7 @@ class GuidedSessionCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Text(description, style: Theme.of(context).textTheme.bodyMedium),
+          Text(description, style: AppTextStyles.body),
           const SizedBox(height: 14),
           Row(
             children: [
@@ -85,10 +76,7 @@ class GuidedSessionCard extends StatelessWidget {
                 size: 18,
               ),
               const SizedBox(width: 6),
-              Text(
-                'Offline placeholder',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
+              Text('Offline placeholder', style: AppTextStyles.caption),
               const Spacer(),
               FilledButton.icon(
                 style: FilledButton.styleFrom(

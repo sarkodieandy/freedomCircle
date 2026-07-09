@@ -26,17 +26,27 @@ class MessageReactionBar extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.only(top: compact ? 4 : 8),
       child: Wrap(
-        spacing: 4,
+        spacing: 6,
         children: [
           for (final reaction in reactions)
-            IconButton(
-              visualDensity: VisualDensity.compact,
-              tooltip: reaction.$1,
-              onPressed: onReaction == null
-                  ? null
-                  : () => onReaction!(reaction.$1),
-              icon: Icon(reaction.$2, size: compact ? 17 : 20),
-              color: AppColors.gold,
+            InkWell(
+              borderRadius: BorderRadius.circular(100),
+              onTap: onReaction == null ? null : () => onReaction!(reaction.$1),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.paleGold,
+                  borderRadius: BorderRadius.circular(100),
+                  border: Border.all(
+                    color: AppColors.gold.withValues(alpha: .4),
+                  ),
+                ),
+                child: Icon(
+                  reaction.$2,
+                  size: compact ? 14 : 18,
+                  color: AppColors.gold,
+                ),
+              ),
             ),
         ],
       ),

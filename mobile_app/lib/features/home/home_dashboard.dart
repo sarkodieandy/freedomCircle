@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../app/routes.dart';
 import '../../app/constants.dart';
 import '../../app/images.dart';
 import '../../core/animations/fade_slide_in.dart';
@@ -12,6 +13,7 @@ import '../../core/widgets/badges.dart';
 import '../../core/widgets/common_widgets.dart';
 import '../../core/widgets/progress_ring.dart';
 import '../../core/widgets/remote_image.dart';
+import '../../core/widgets/app_avatar.dart';
 import '../../data/models/accountability_group.dart';
 import '../../data/providers/repository_provider.dart';
 import '../../data/repositories/freedom_repository.dart';
@@ -56,6 +58,8 @@ class _HomeDashboardState extends State<HomeDashboard> {
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
+    final now = DateTime.now();
+    final todayLabel = '${now.day}/${now.month}/${now.year}';
 
     return Scaffold(
       body: SafeArea(
@@ -71,6 +75,8 @@ class _HomeDashboardState extends State<HomeDashboard> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const AppAvatar(imageUrl: AppImages.avatarTwo, radius: 20),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,7 +87,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Today: ${appState.selectedFocus}, honest check-in, prayer at ${appState.reminderTime}.',
+                            'Today $todayLabel • ${appState.selectedFocus} • Prayer at ${appState.reminderTime}',
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                         ],
@@ -110,6 +116,19 @@ class _HomeDashboardState extends State<HomeDashboard> {
                         child: Icon(Icons.notifications_none_rounded),
                       ),
                       tooltip: 'Notifications',
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton.filledTonal(
+                      onPressed: () =>
+                          Navigator.pushNamed(context, AppRoutes.search),
+                      icon: const Icon(Icons.search_rounded),
+                      tooltip: 'Search',
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton.filledTonal(
+                      onPressed: () => widget.onOpenTab(4),
+                      icon: const Icon(Icons.person_rounded),
+                      tooltip: 'Profile',
                     ),
                   ],
                 ),

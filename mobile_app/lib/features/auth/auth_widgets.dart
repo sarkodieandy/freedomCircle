@@ -8,6 +8,7 @@ import '../../app/images.dart';
 import '../../core/animations/fade_slide_in.dart';
 import '../../core/animations/pressable_scale.dart';
 import '../../core/widgets/app_logo.dart';
+import '../../core/widgets/common_widgets.dart';
 import '../../core/widgets/remote_image.dart';
 
 class AuthScaffold extends StatelessWidget {
@@ -35,7 +36,7 @@ class AuthScaffold extends StatelessWidget {
           builder: (context, constraints) {
             return SingleChildScrollView(
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              padding: EdgeInsets.fromLTRB(22, 14, 22, bottomPadding),
+              padding: EdgeInsets.fromLTRB(20, 14, 20, bottomPadding),
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: Column(
@@ -57,29 +58,22 @@ class AuthScaffold extends StatelessWidget {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'FreedomCircle',
+                            'freedonCircle',
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
                         ),
-                        Container(
-                          width: 42,
-                          height: 42,
-                          decoration: BoxDecoration(
-                            color: AppColors.softGreen,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Icon(
-                            Icons.shield_outlined,
-                            color: AppColors.green,
-                          ),
+                        const AppIconContainer(
+                          icon: Icons.shield_outlined,
+                          size: 42,
+                          iconSize: 20,
                         ),
                       ],
                     ),
                     if (header != null) ...[
-                      const SizedBox(height: 22),
+                      const SizedBox(height: AppSpacing.xl),
                       header!,
                     ],
-                    const SizedBox(height: 22),
+                    const SizedBox(height: AppSpacing.xl),
                     ...children,
                   ],
                 ),
@@ -118,12 +112,12 @@ class AuthHeaderVisual extends StatelessWidget {
             Positioned.fill(
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
+                  borderRadius: BorderRadius.circular(AppRadius.xl),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.navy.withValues(alpha: .11),
-                      blurRadius: 26,
-                      offset: const Offset(0, 16),
+                      color: AppColors.navy.withValues(alpha: .06),
+                      blurRadius: 14,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
@@ -137,7 +131,7 @@ class AuthHeaderVisual extends StatelessWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(28),
                 child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: .4, sigmaY: .4),
+                  filter: ImageFilter.blur(sigmaX: .2, sigmaY: .2),
                   child: const SizedBox.expand(),
                 ),
               ),
@@ -147,37 +141,23 @@ class AuthHeaderVisual extends StatelessWidget {
               right: 16,
               bottom: 16,
               child: Container(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
                   color: AppColors.card.withValues(alpha: .9),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                   border: Border.all(color: Colors.white.withValues(alpha: .7)),
                 ),
                 child: Row(
                   children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: AppColors.softGreen,
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Icon(icon, color: AppColors.green),
-                    ),
-                    const SizedBox(width: 12),
+                    AppIconContainer(icon: icon, size: 42, iconSize: 20),
+                    const SizedBox(width: AppSpacing.md),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            title,
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
+                          Text(title, style: AppTextStyles.cardTitle),
                           const SizedBox(height: 2),
-                          Text(
-                            subtitle,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
+                          Text(subtitle, style: AppTextStyles.body),
                         ],
                       ),
                     ),
@@ -242,13 +222,13 @@ class _AuthTextFieldState extends State<AuthTextField> {
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOutCubic,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(19),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         boxShadow: [
           if (focused)
             BoxShadow(
-              color: AppColors.green.withValues(alpha: .14),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
+              color: AppColors.green.withValues(alpha: .08),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
             ),
         ],
       ),
@@ -271,13 +251,13 @@ class _AuthTextFieldState extends State<AuthTextField> {
                 : AppColors.mutedText,
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(AppRadius.md),
             borderSide: BorderSide(
               color: hasError ? AppColors.support : AppColors.line,
             ),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(AppRadius.md),
             borderSide: BorderSide(
               color: hasError ? AppColors.support : AppColors.green,
               width: 1.6,
@@ -382,13 +362,13 @@ class _AuthTextFieldShellState extends State<AuthTextFieldShell> {
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOutCubic,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(19),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         boxShadow: [
           if (focused)
             BoxShadow(
-              color: AppColors.green.withValues(alpha: .14),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
+              color: AppColors.green.withValues(alpha: .08),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
             ),
         ],
       ),
@@ -411,13 +391,13 @@ class _AuthTextFieldShellState extends State<AuthTextFieldShell> {
           ),
           suffixIcon: widget.suffix,
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(AppRadius.md),
             borderSide: BorderSide(
               color: hasError ? AppColors.support : AppColors.line,
             ),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(AppRadius.md),
             borderSide: BorderSide(
               color: hasError ? AppColors.support : AppColors.green,
               width: 1.6,
@@ -469,11 +449,12 @@ class AuthPrimaryButton extends StatelessWidget {
           disabledBackgroundColor: color.withValues(alpha: .78),
           foregroundColor: foregroundColor,
           disabledForegroundColor: foregroundColor,
-          minimumSize: const Size.fromHeight(56),
+          minimumSize: const Size.fromHeight(52),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(AppRadius.md),
           ),
-          textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+          elevation: 0,
         ),
       ),
     );
@@ -572,14 +553,14 @@ class _OtpInputFieldState extends State<OtpInputField> {
               height: 58,
               decoration: BoxDecoration(
                 color: AppColors.card,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(AppRadius.md),
                 border: Border.all(color: color, width: focused ? 1.6 : 1),
                 boxShadow: [
                   if (focused)
                     BoxShadow(
-                      color: AppColors.green.withValues(alpha: .12),
-                      blurRadius: 16,
-                      offset: const Offset(0, 8),
+                      color: AppColors.green.withValues(alpha: .08),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
                     ),
                 ],
               ),
@@ -690,16 +671,21 @@ class AuthErrorMessage extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.support.withValues(alpha: .1),
-        borderRadius: BorderRadius.circular(16),
+        color: AppColors.supportBg,
+        borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(color: AppColors.support.withValues(alpha: .24)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline_rounded, color: AppColors.support),
-          const SizedBox(width: 10),
+          const AppIconContainer(
+            icon: Icons.error_outline_rounded,
+            color: AppColors.support,
+            size: 36,
+            iconSize: 18,
+          ),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
               message,
@@ -731,16 +717,16 @@ class AuthSuccessCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
         border: Border.all(color: AppColors.line),
         boxShadow: [
           BoxShadow(
-            color: AppColors.navy.withValues(alpha: .08),
-            blurRadius: 28,
-            offset: const Offset(0, 16),
+            color: AppColors.navy.withValues(alpha: .05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -756,8 +742,9 @@ class AuthSuccessCard extends StatelessWidget {
               width: 86,
               height: 86,
               decoration: BoxDecoration(
-                color: AppColors.softGreen,
+                color: AppColors.mintGreen,
                 borderRadius: BorderRadius.circular(32),
+                border: Border.all(color: AppColors.line),
               ),
               child: const Icon(
                 Icons.check_rounded,
@@ -801,14 +788,15 @@ class AuthDividerNote extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
-        color: AppColors.softGreen,
-        borderRadius: BorderRadius.circular(18),
+        color: AppColors.mintGreen,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.line),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: AppColors.green, size: 20),
-          const SizedBox(width: 10),
+          AppIconContainer(icon: icon, size: 34, iconSize: 16),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
               text,

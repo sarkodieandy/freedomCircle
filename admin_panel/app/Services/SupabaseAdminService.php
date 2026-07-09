@@ -104,6 +104,39 @@ class SupabaseAdminService
         return $this->patchById('quiet_time_sessions', $sessionId, $values);
     }
 
+    public function quietTimeVideoSessions(array $filters = []): array
+    {
+        return $this->rest()
+            ->get($this->endpoint('quiet_time_sessions'), array_merge([
+                'session_type' => 'eq.video',
+                'order' => 'sort_order.asc',
+                'select' => '*,quiet_time_categories(name,slug)',
+            ], $filters))
+            ->throw()
+            ->json();
+    }
+
+    public function quietTimeVideoChapters(string $sessionId): array
+    {
+        return $this->rest()
+            ->get($this->endpoint('quiet_time_video_chapters'), [
+                'session_id' => "eq.$sessionId",
+                'order' => 'sort_order.asc',
+            ])
+            ->throw()
+            ->json();
+    }
+
+    public function createQuietTimeVideoChapter(array $values): array
+    {
+        return $this->insert('quiet_time_video_chapters', $values);
+    }
+
+    public function updateQuietTimeVideoChapter(string $chapterId, array $values): array
+    {
+        return $this->patchById('quiet_time_video_chapters', $chapterId, $values);
+    }
+
     public function quietTimeSteps(string $sessionId): array
     {
         return $this->rest()
@@ -363,7 +396,70 @@ class SupabaseAdminService
             ->json();
     }
 
-    private function insert(string $table, array $values): array
+    public function listRows(string $table, array $filters = []): array
+    {
+        return $this->rest()
+            ->get($this->endpoint($table), $filters)
+            ->throw()
+            ->json();
+    }
+
+    public function firstBy(string $table, array $filters): ?array
+    {
+        $rows = $this->listRows($table, array_merge($filters, ['limit' => 1]));
+
+        return $rows[0] ?? null;
+    }
+
+    public function viewRows(string $view, int $limit = 250): array
+    {
+        return $this->listRows($view, ['limit' => $limit]);
+    }
+
+    public function countTable(string $table, array $filters = []): int
+    {
+        $response = $this->rest()
+            ->withHeaders(['Prefer' => 'count=exact'])
+            ->get($this->endpoint($table), array_merge($filters, [
+                'select' => 'id',
+                'limit' => 1,
+            ]));
+
+        $response->throw();
+        $range = (string) $response->header('content-range');
+        if (! str_contains($range, '/')) {
+            return 0;
+        }
+
+        return (int) substr($range, strrpos($range, '/') + 1);
+    }
+
+    public function globalSearch(string $term): array
+    {
+        $needle = '%' . trim($term) . '%';
+
+        $targets = [
+            'users' => ['table' => 'profiles', 'query' => ['or' => "full_name.ilike.$needle,username.ilike.$needle,email.ilike.$needle", 'limit' => 15]],
+            'groups' => ['table' => 'groups', 'query' => ['or' => "name.ilike.$needle,description.ilike.$needle", 'limit' => 15]],
+            'organizations' => ['table' => 'organizations', 'query' => ['or' => "name.ilike.$needle,slug.ilike.$needle", 'limit' => 15]],
+            'helpers' => ['table' => 'helpers', 'query' => ['or' => "display_name.ilike.$needle,bio.ilike.$needle", 'limit' => 15]],
+            'posts' => ['table' => 'community_posts', 'query' => ['or' => "title.ilike.$needle,body.ilike.$needle", 'limit' => 15]],
+            'prayer_requests' => ['table' => 'prayer_requests', 'query' => ['or' => "title.ilike.$needle,body.ilike.$needle", 'limit' => 15]],
+            'payments' => ['table' => 'payments', 'query' => ['or' => "provider_reference.ilike.$needle,status.ilike.$needle", 'limit' => 15]],
+            'subscriptions' => ['table' => 'subscriptions', 'query' => ['or' => "provider_subscription_id.ilike.$needle,status.ilike.$needle", 'limit' => 15]],
+            'reports' => ['table' => 'reports', 'query' => ['or' => "reason.ilike.$needle,target_type.ilike.$needle", 'limit' => 15]],
+            'programs' => ['table' => 'paid_programs', 'query' => ['or' => "title.ilike.$needle,slug.ilike.$needle", 'limit' => 15]],
+        ];
+
+        $result = [];
+        foreach ($targets as $key => $target) {
+            $result[$key] = $this->listRows($target['table'], $target['query']);
+        }
+
+        return $result;
+    }
+
+    public function insert(string $table, array $values): array
     {
         return $this->rest()
             ->post($this->endpoint($table), $values)
@@ -371,12 +467,30 @@ class SupabaseAdminService
             ->json();
     }
 
-    private function patchById(string $table, string $id, array $values): array
+    public function patchById(string $table, string $id, array $values): array
     {
         return $this->rest()
             ->patch($this->endpoint($table, ['id' => "eq.$id"]), $values)
             ->throw()
             ->json();
+    }
+
+    public function updateByFilters(string $table, array $filters, array $values): array
+    {
+        return $this->rest()
+            ->patch($this->endpoint($table, $filters), $values)
+            ->throw()
+            ->json();
+    }
+
+    public function upsertByFilters(string $table, array $filters, array $values): array
+    {
+        $existing = $this->firstBy($table, $filters);
+        if (is_array($existing) && isset($existing['id'])) {
+            return $this->patchById($table, (string) $existing['id'], $values);
+        }
+
+        return $this->insert($table, $values);
     }
 
     private function patchByProviderReference(string $reference, array $values): array

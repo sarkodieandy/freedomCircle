@@ -15,6 +15,7 @@ import 'widgets/breathing_prayer_circle.dart';
 import 'widgets/mood_selector_card.dart';
 import 'widgets/quiet_time_audio_bar.dart';
 import 'widgets/quiet_time_timer.dart';
+import 'widgets/quiet_video_player.dart';
 import 'widgets/reflection_prompt_card.dart';
 import 'widgets/scripture_reflection_card.dart';
 import 'widgets/session_progress_indicator.dart';
@@ -42,9 +43,11 @@ class _QuietTimePlayerScreenState extends State<QuietTimePlayerScreen> {
   bool _journalAfter = true;
   bool _showScripture = true;
   bool _showSoundPlaceholder = true;
+  bool _videoLoading = false;
   int _elapsedSeconds = 0;
   int _silentMinutes = 5;
   int _stepIndex = 0;
+  String? _signedVideoUrl;
   QuietTimeMood _moodBefore = QuietTimeMood.needPeace;
   QuietTimeMood _moodAfter = QuietTimeMood.needPeace;
 
@@ -76,7 +79,20 @@ class _QuietTimePlayerScreenState extends State<QuietTimePlayerScreen> {
     super.initState();
     _moodBefore = widget.initialMood ?? QuietTimeMood.needPeace;
     _moodAfter = _moodBefore;
+    if (widget.session.isVideoSession) {
+      _loadSignedVideoUrl();
+    }
     _startTicker();
+  }
+
+  Future<void> _loadSignedVideoUrl() async {
+    setState(() => _videoLoading = true);
+    final signedUrl = await _repository.signedVideoUrl(widget.session.id);
+    if (!mounted) return;
+    setState(() {
+      _signedVideoUrl = signedUrl ?? widget.session.videoUrl;
+      _videoLoading = false;
+    });
   }
 
   @override
@@ -216,13 +232,55 @@ class _QuietTimePlayerScreenState extends State<QuietTimePlayerScreen> {
                     current: _stepIndex,
                   ),
                   const SizedBox(height: 16),
-                  Center(
-                    child: BreathingPrayerCircle(
-                      progress: _progress,
-                      playing: _playing,
-                      label: currentStep.stepTitle,
+                  if (widget.session.isVideoSession)
+                    AppCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Guided video practice',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: 8),
+                          if (_videoLoading)
+                            const SizedBox(
+                              height: 220,
+                              child: Center(child: CircularProgressIndicator()),
+                            )
+                          else if (_signedVideoUrl != null)
+                            QuietVideoPlayer(
+                              videoUrl: _signedVideoUrl!,
+                              onPlayStateChanged: (playing) {
+                                if (!mounted) return;
+                                setState(() => _playing = playing);
+                              },
+                            )
+                          else
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Video playback is unavailable right now.',
+                                ),
+                                const SizedBox(height: 8),
+                                OutlinedButton.icon(
+                                  onPressed: _loadSignedVideoUrl,
+                                  icon: const Icon(Icons.refresh_rounded),
+                                  label: const Text('Retry signed URL'),
+                                ),
+                              ],
+                            ),
+                        ],
+                      ),
+                    )
+                  else
+                    Center(
+                      child: BreathingPrayerCircle(
+                        progress: _progress,
+                        playing: _playing,
+                        label: currentStep.stepTitle,
+                      ),
                     ),
-                  ),
                   const SizedBox(height: 14),
                   AppCard(
                     child: Column(
@@ -251,18 +309,69 @@ class _QuietTimePlayerScreenState extends State<QuietTimePlayerScreen> {
                   if (_showScripture &&
                       (currentStep.scriptureReference?.isNotEmpty ?? false))
                     const SizedBox(height: 12),
-                  QuietTimeAudioBar(
-                    playing: _playing,
-                    progress: _progress,
-                    onPlayPause: () => setState(() => _playing = !_playing),
-                    onPrevious: () => setState(
-                      () => _stepIndex = (_stepIndex - 1).clamp(0, 4),
+                  if (!widget.session.isVideoSession) ...[
+                    QuietTimeAudioBar(
+                      playing: _playing,
+                      progress: _progress,
+                      onPlayPause: () => setState(() => _playing = !_playing),
+                      onPrevious: () => setState(
+                        () => _stepIndex = (_stepIndex - 1).clamp(0, 4),
+                      ),
+                      onNext: () => setState(
+                        () => _stepIndex = (_stepIndex + 1).clamp(0, 4),
+                      ),
                     ),
-                    onNext: () => setState(
-                      () => _stepIndex = (_stepIndex + 1).clamp(0, 4),
+                    const SizedBox(height: 12),
+                  ],
+                  if (widget.session.isVideoSession &&
+                      widget.session.videoChapters.isNotEmpty) ...[
+                    AppCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Video chapters',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 8),
+                          for (final chapter in widget.session.videoChapters)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('${chapter.startSeconds ~/ 60}m'),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          chapter.title,
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.titleSmall,
+                                        ),
+                                        if ((chapter.scriptureReference ?? '')
+                                            .isNotEmpty)
+                                          Text(
+                                            chapter.scriptureReference!,
+                                            style: Theme.of(
+                                              context,
+                                            ).textTheme.bodySmall,
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
+                    const SizedBox(height: 12),
+                  ],
                   SwitchListTile(
                     value: _journalAfter,
                     onChanged: (value) => setState(() => _journalAfter = value),
@@ -397,7 +506,7 @@ class _QuietTimePlayerScreenState extends State<QuietTimePlayerScreen> {
                     const SafetyNotice(
                       icon: Icons.info_outline_rounded,
                       text:
-                          'FreedomCircle offers spiritual support and accountability. For urgent or serious concerns, reach out to a trusted person, qualified professional, or local emergency support.',
+                          'freedonCircle offers spiritual support and accountability. For urgent or serious concerns, reach out to a trusted person, qualified professional, or local emergency support.',
                     ),
                   ],
                   const SizedBox(height: 14),

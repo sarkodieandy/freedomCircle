@@ -73,7 +73,7 @@ class _SplashScreenState extends State<SplashScreen>
                           const FreedomLogo(size: 96),
                           const SizedBox(height: 24),
                           Text(
-                            'FreedomCircle',
+                            'freedonCircle',
                             style: Theme.of(context).textTheme.displaySmall,
                             textAlign: TextAlign.center,
                           ),

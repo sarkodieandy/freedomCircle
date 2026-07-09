@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/utils/app_logger.dart';
 import 'supabase_config.dart';
 
 class SupabaseService {
@@ -13,14 +14,36 @@ class SupabaseService {
 
   static Future<void> initialize() async {
     if (_initialized || !SupabaseConfig.isConfigured) {
+      AppLogger.supabase(
+        'Supabase initialization skipped',
+        data: {
+          'already_initialized': _initialized,
+          'configured': SupabaseConfig.isConfigured,
+        },
+      );
       return;
     }
 
-    await Supabase.initialize(
-      url: SupabaseConfig.url,
-      publishableKey: SupabaseConfig.anonKey,
-    );
-    _initialized = true;
+    try {
+      AppLogger.supabase(
+        'Supabase initialization started',
+        data: {'module': 'SupabaseService.initialize'},
+      );
+      await Supabase.initialize(
+        url: SupabaseConfig.url,
+        publishableKey: SupabaseConfig.anonKey,
+      );
+      _initialized = true;
+      AppLogger.supabase('Supabase initialization success');
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'Supabase initialization failed',
+        tag: 'SUPABASE',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
   }
 
   static SupabaseClient get client {
@@ -54,14 +77,25 @@ class SupabaseService {
 
   static Future<void> signOut() async {
     if (!_initialized) {
+      AppLogger.auth('Sign out skipped because Supabase is not initialized');
       return;
     }
 
+    AppLogger.auth(
+      'Logout started',
+      data: {'source': 'SupabaseService.signOut'},
+    );
     await Supabase.instance.client.auth.signOut();
+    AppLogger.auth(
+      'Logout success',
+      data: {'source': 'SupabaseService.signOut'},
+    );
   }
 
   static Future<void> refreshSession() async {
     if (!_initialized) return;
+    AppLogger.auth('Session refresh started');
     await Supabase.instance.client.auth.refreshSession();
+    AppLogger.auth('Session refresh success');
   }
 }
